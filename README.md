@@ -59,8 +59,26 @@ Note: The Guition JC4827543C uses ESP32-S3 with ESP-IDF framework, QSPI display,
    - **Color**: Use color picker or swatches
    - **Position**: Grid column and row
    - **Actions**: Short press and optional long press
-4. Download the generated YAML file
-5. Copy to your ESPHome folder and compile
+4. Download or copy the generated YAML config into your ESPHome folder
+5. Copy the `cyd-lib/` folder into your ESPHome folder (e.g. `esphome/cyd-lib/`)
+6. Check that your `secrets.yaml` has the required secret variables configured (see [Secrets](#secrets) below)
+7. Compile in ESPHome
+
+> **⚠️ The `cyd-lib/` folder is required.** The generated YAML references `cyd-lib/fonts/` for fonts and `cyd-lib/templates/` for button/widget templates. Without it, compilation will fail with file-not-found errors.
+
+### Secrets
+
+The generated YAML uses `!secret` placeholders for credentials. Make sure your `secrets.yaml` (in your ESPHome folder) defines all of these:
+
+```yaml
+# secrets.yaml
+api_encryption_key: "<your-key>"
+ota_password: "<your-password>"
+wifi_ssid: "<your-ssid>"
+wifi_password: "<your-wifi-password>"
+```
+
+> **⚠️ Without these secrets, compilation will fail.** Never hardcode credentials directly in the generated YAML.
 
 ### Button Types
 
@@ -149,8 +167,8 @@ lvgl:
 ### ESPHome
 
 - ESPHome 2024.6.0 or later (for LVGL support)
-- `fonts/Arimo-Regular.ttf`
-- `fonts/materialdesignicons-webfont.ttf`
+- **`cyd-lib/` folder** placed in your ESPHome config directory — the generated YAML references `cyd-lib/fonts/Arimo-Regular.ttf`, `cyd-lib/fonts/materialdesignicons-webfont.ttf`, and `cyd-lib/templates/*.yaml`. Without this folder, compilation fails.
+- The `cyd-lib/` folder is included in this repository under `cyd-lib/` — copy it as-is into your ESPHome folder.
 
 ### Home Assistant
 
@@ -163,6 +181,9 @@ lvgl:
 Yellow-CYD-party/
 ├── index.html          # Web app (single file)
 ├── README.md           # This documentation
+├── cyd-lib/            # ⚠️ Required by generated YAML — copy into your ESPHome folder
+│   ├── fonts/          # Arimo-Regular.ttf, materialdesignicons-webfont.ttf
+│   └── templates/      # Button/widget templates (checkable, stateless, state-sync, etc.)
 ├── esphome/            # ESPHome configurations
 │   ├── back-garden-cyd.yaml
 │   ├── living-room-cyd.yaml
