@@ -10,7 +10,7 @@ export const BOARD_CONFIGS = {
     width: 320,
     height: 240,
     hardwareType: HardwareType.CYD_SPI_XPT2046,
-    capabilities: { rgbLed: true },
+    capabilities: { rgbLed: true, portrait: true },
     hardware: {
       esp32: { board: 'esp32dev', framework: 'arduino' },
       display: {
@@ -33,7 +33,7 @@ export const BOARD_CONFIGS = {
         transform: { swap_xy: true }
       },
       backlight: { pin: 'GPIO21', frequency: '1000Hz' },
-      rgbLed: { redPin: 'GPIO4', greenPin: 'GPIO17', bluePin: 'GPIO16', inverted: true }
+      rgbLed: { redPin: 'GPIO4', greenPin: 'GPIO16', bluePin: 'GPIO17', inverted: true }
     }
   },
   'esp32-e32r28t': {
@@ -376,6 +376,7 @@ export const DEFAULT_CONFIG = {
   gridRows: 3,
   iconSize: 48,
   rotate180: false,
+  vertical: false,
   led: structuredClone(DEFAULT_LED),
   rawBlocks: [],
   buttons: Array(12).fill(null).map((_, i) => ({

@@ -67,6 +67,12 @@ export function validateConfig(config, deps = {}) {
     issues.errors.push({ message: 'rotate180 must be a boolean value (true or false).', selector: '#rotate-180' });
   }
 
+  if (config.vertical !== undefined && typeof config.vertical !== 'boolean') {
+    issues.errors.push({ message: 'vertical must be a boolean value (true or false).', selector: '#vertical-screen' });
+  } else if (config.vertical && boardConfig?.capabilities?.portrait !== true) {
+    issues.errors.push({ message: 'Vertical mode is currently verified only for ESP32-2432S028-2port.', selector: '#vertical-screen' });
+  }
+
   if (config.iconSize !== undefined) {
     const iconSize = Number(config.iconSize);
     if (!Number.isFinite(iconSize) || !Number.isInteger(iconSize) || iconSize < 16 || iconSize > 96) {

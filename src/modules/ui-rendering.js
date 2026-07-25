@@ -2,6 +2,8 @@
 // UI RENDERING MODULE
 // ============================================================
 
+import { getDisplayGrid, displayToLogical, logicalToDisplay } from './orientation.js';
+
 export function createUIRendering({
   getState, getSelectedIndex, store,
   getIconByCodepoint, escapeHTML,
@@ -82,20 +84,23 @@ export function createUIRendering({
     const container = document.getElementById('grid-preview');
     if (!container) return;
 
-    const gridColumns = getGridColumns();
-    const gridRows = getGridRows();
+    const state = getState();
+    const logicalColumns = getGridColumns();
+    const logicalRows = getGridRows();
+    const { columns: gridColumns, rows: gridRows } = getDisplayGrid(state);
     const iconSize = getIconSize();
     if (typeof container.style?.setProperty === 'function') {
       container.style.setProperty('--grid-columns', gridColumns);
       container.style.setProperty('--grid-rows', gridRows);
       container.style.setProperty('--icon-size', `${iconSize}px`);
     }
+    container.classList.toggle('vertical', Boolean(state.vertical));
 
-    const state = getState();
     const positionMap = new Map();
     state.buttons.forEach((btn, idx) => {
       if (btn.empty) return;
-      const key = `${btn.col},${btn.row}`;
+      const displayPosition = logicalToDisplay(btn.col, btn.row, logicalColumns, logicalRows, state.vertical, state.rotate180);
+      const key = `${displayPosition.col},${displayPosition.row}`;
       if (!positionMap.has(key)) positionMap.set(key, []);
       positionMap.get(key).push(idx);
     });
@@ -115,11 +120,14 @@ export function createUIRendering({
       gridCellCache.buttonCount = state.buttons.length;
     }
 
-    const createGridCell = (col, row, btnIndex, hasConflict) => {
+    const createGridCell = (displayCol, displayRow, btnIndex, hasConflict) => {
+      const { col, row } = displayToLogical(displayCol, displayRow, logicalColumns, logicalRows, state.vertical, state.rotate180);
       const cell = document.createElement('div');
       cell.className = 'grid-cell';
       cell.dataset.col = col;
       cell.dataset.row = row;
+      cell.dataset.displayCol = displayCol;
+      cell.dataset.displayRow = displayRow;
       cell.dataset.btnIndex = btnIndex >= 0 ? String(btnIndex) : 'empty';
 
       if (btnIndex >= 0) {
@@ -127,7 +135,7 @@ export function createUIRendering({
         const iconData = previewIconOf(btn);
 
         cell.innerHTML = `
-          <span class="position-badge">${col + 1},${row + 1}</span>
+          <span class="position-badge">${displayCol + 1},${displayRow + 1}</span>
           <span class="icon" style="font-family: 'Material Design Icons'; font-size: ${getPreviewFontSize(btn.font)}; color: #${btn.color};">${iconData?.char || ''}</span>
           <span class="label">${escapeHTML(btn.label)}</span>
         `;
@@ -136,7 +144,7 @@ export function createUIRendering({
         if (hasConflict) cell.classList.add('position-conflict');
 
         cell.addEventListener('click', () => selectButton(btnIndex));
-        cell.addEventListener('keydown', (e) => handleGridKeydown(e, col, row, btnIndex));
+        cell.addEventListener('keydown', (e) => handleGridKeydown(e, displayCol, displayRow, btnIndex));
         attachGridDragListeners(cell, btnIndex);
         applyGridDragAttributes(cell, btnIndex);
         cell.tabIndex = 0;
@@ -144,16 +152,16 @@ export function createUIRendering({
         cell.setAttribute('aria-label', `Edit ${btn.label}`);
       } else {
         cell.innerHTML = `
-          <span class="position-badge">${col + 1},${row + 1}</span>
+          <span class="position-badge">${displayCol + 1},${displayRow + 1}</span>
           <span class="label text-muted">Empty</span>
         `;
         cell.classList.add('empty');
         applyGridDragAttributes(cell, btnIndex);
         cell.tabIndex = 0;
         cell.setAttribute('role', 'button');
-        cell.setAttribute('aria-label', `Move selected button to column ${col + 1}, row ${row + 1}`);
+        cell.setAttribute('aria-label', `Move selected button to column ${displayCol + 1}, row ${displayRow + 1}`);
         cell.addEventListener('click', () => handleEmptyCellClick(col, row));
-        cell.addEventListener('keydown', (e) => handleGridKeydown(e, col, row, btnIndex));
+        cell.addEventListener('keydown', (e) => handleGridKeydown(e, displayCol, displayRow, btnIndex));
         attachGridDragListeners(cell, btnIndex);
       }
 
@@ -163,11 +171,12 @@ export function createUIRendering({
     for (let row = 0; row < gridRows; row++) {
       for (let col = 0; col < gridColumns; col++) {
         const slotIndex = row * gridColumns + col;
-        const btnIndex = state.buttons.findIndex(b => !b.empty && b.col === col && b.row === row);
+        const logicalPosition = displayToLogical(col, row, logicalColumns, logicalRows, state.vertical, state.rotate180);
+        const btnIndex = state.buttons.findIndex(b => !b.empty && b.col === logicalPosition.col && b.row === logicalPosition.row);
         const hasConflict = positionMap.get(`${col},${row}`)?.length > 1;
 
         let cell = container.children[slotIndex];
-        const cellMatchesSlot = cell?.dataset.col === String(col) && cell?.dataset.row === String(row);
+        const cellMatchesSlot = cell?.dataset.displayCol === String(col) && cell?.dataset.displayRow === String(row);
         const expectedBtnIndex = btnIndex >= 0 ? String(btnIndex) : 'empty';
 
         if (needsFullRebuild || !cell || !cellMatchesSlot) {
@@ -463,31 +472,36 @@ export function createUIRendering({
     const options = getAllowedGridOptions(boardConfig);
     const isLocked = options.length === 1;
     const current = getNormalizedGridForBoard(boardConfig, getGridColumns(), getGridRows());
+    const vertical = Boolean(getState().vertical);
 
     select.innerHTML = options.map(option => {
-      const label = `${option.columns}×${option.rows}${isLocked ? ' (locked)' : ''}`;
+      const columns = vertical ? option.rows : option.columns;
+      const rows = vertical ? option.columns : option.rows;
+      const label = `${columns}×${rows}${isLocked ? ' (locked)' : ''}`;
       return `<option value="${gridOptionValue(option)}">${label}</option>`;
     }).join('');
     select.value = gridOptionValue(current);
     select.disabled = isLocked;
-    updateGridSizePreview(current.columns, current.rows);
+    updateGridSizePreview(current.columns, current.rows, vertical);
 
     if (hint) {
       const warnings = getBoardSupportWarnings(boardConfig);
       const warningText = warnings.length ? ` ${warnings.map(w => w.message).join(' ')}` : '';
       hint.textContent = isLocked
-        ? `320×240 boards use a fixed 4×3 grid.${warningText}`
+        ? `320×240 boards use a fixed ${vertical ? '3×4' : '4×3'} grid.${warningText}`
         : `Choose the grid density for larger displays.${warningText}`;
     }
   }
 
-  function updateGridSizePreview(columns, rows) {
+  function updateGridSizePreview(columns, rows, vertical = false) {
     const preview = document.getElementById('grid-size-preview');
     if (!preview || typeof preview.style?.setProperty !== 'function') return;
 
-    preview.style.setProperty('--preview-columns', columns);
-    preview.style.setProperty('--preview-rows', rows);
-    preview.setAttribute('title', `${columns}×${rows} grid`);
+    const previewColumns = vertical ? rows : columns;
+    const previewRows = vertical ? columns : rows;
+    preview.style.setProperty('--preview-columns', previewColumns);
+    preview.style.setProperty('--preview-rows', previewRows);
+    preview.setAttribute('title', `${previewColumns}×${previewRows} grid`);
     preview.innerHTML = Array.from({ length: columns * rows }, () => '<span class="grid-size-preview-cell"></span>').join('');
   }
 
@@ -525,6 +539,13 @@ export function createUIRendering({
     if (boardSelect) boardSelect.value = getBoardId();
     const rotate180Checkbox = document.getElementById('rotate-180');
     if (rotate180Checkbox) rotate180Checkbox.checked = Boolean(state.rotate180);
+    const verticalCheckbox = document.getElementById('vertical-screen');
+    if (verticalCheckbox) {
+      const portraitSupported = getCurrentBoardConfig()?.capabilities?.portrait === true;
+      verticalCheckbox.checked = portraitSupported && Boolean(state.vertical);
+      verticalCheckbox.disabled = !portraitSupported;
+      verticalCheckbox.title = portraitSupported ? '' : 'Vertical mode is currently verified only for ESP32-2432S028-2port.';
+    }
     const iconSizeInput = document.getElementById('icon-size');
     if (iconSizeInput) iconSizeInput.value = getIconSize();
     populateGridSelector();

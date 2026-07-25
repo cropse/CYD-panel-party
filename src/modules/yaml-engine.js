@@ -2,6 +2,8 @@
 // YAML GENERATION ENGINE MODULE
 // ============================================================
 
+import { getDisplayGrid, logicalToYamlGrid } from './orientation.js';
+
 /**
  * YAML Generation Engine - Pure functions for ESPHome YAML generation.
  *
@@ -129,10 +131,14 @@ export function generateSubstitutions(config, deps) {
   const { yamlScalar, yamlQuoted } = deps;
   const boardConfig = deps.boardConfig || resolveBoardConfig(config, deps);
 
+  const vertical = Boolean(config?.vertical);
+  const width = vertical ? boardConfig.height : boardConfig.width;
+  const height = vertical ? boardConfig.width : boardConfig.height;
+
   return `substitutions:
   font_directory: cyd-lib/fonts/
-  width: "${boardConfig.width}"
-  height: "${boardConfig.height}"
+  width: "${width}"
+  height: "${height}"
   device_name: ${yamlScalar(config.deviceName)}
   nice_name: ${yamlQuoted(config.niceName)}
   ap_password: "${config.apPassword}"`;
@@ -160,6 +166,7 @@ function generateCoreHardwareConfig(esp32, esphomeOpts = {}) {
   const pioOpts = esphomeOpts.platformio_options ? Object.entries(esphomeOpts.platformio_options).map(([k, v]) => `\n    ${k}: ${v}`).join('') : '';
   const platformio = pioOpts ? `\n  platformio_options:${pioOpts}` : '';
   const onBoot = esphomeOpts.on_boot ? `\n  on_boot:${esphomeOpts.on_boot}` : '';
+  const minVersion = esphomeOpts.min_version ? `\n  min_version: ${esphomeOpts.min_version}` : '';
   return `esp32:
   board: ${esp32.board}${variant}${flashSize}
   framework:
@@ -167,7 +174,7 @@ function generateCoreHardwareConfig(esp32, esphomeOpts = {}) {
 
 esphome:
   name: \${device_name}
-  friendly_name: \${nice_name}${platformio}${onBoot}
+  friendly_name: \${nice_name}${minVersion}${platformio}${onBoot}
 
 api:
   encryption:
@@ -234,10 +241,18 @@ function generateCydHardwareConfig(boardConfig, config, deps) {
   const colorOrder = display.color_order ? `
     color_order: ${display.color_order}` : '';
   const rotate = Boolean(config?.rotate180);
-  const displayTransformObj = rotate ? composeTransform(display.transform, true) : (display.transform || {});
-  const touchTransformObj = rotate ? composeTransform(touch.transform, true) : (touch.transform || {});
+  const portraitTransform = rotate ? { mirror_y: true } : {};
+  const portraitTouchTransform = rotate ? { mirror_y: true } : { mirror_x: true };
+  const displayTransformObj = config?.vertical ? portraitTransform : (rotate ? composeTransform(display.transform, true) : (display.transform || {}));
+  const touchTransformObj = config?.vertical ? portraitTouchTransform : (rotate ? composeTransform(touch.transform, true) : (touch.transform || {}));
   const displayTransform = Object.entries(displayTransformObj).map(([key, value]) => `      ${key}: ${value}`).join('\n');
   const touchTransform = Object.entries(touchTransformObj).map(([key, value]) => `      ${key}: ${value}`).join('\n');
+  const displayTransformBlock = displayTransform ? `
+    transform:
+${displayTransform}` : '';
+  const touchTransformBlock = touchTransform ? `
+    transform:
+${touchTransform}` : '';
   const spiSection = touch.spi_id === 'tft' ? `spi:
   - id: tft
     clk_pin: 14
@@ -262,6 +277,9 @@ spi:
     miso_pin: 39`;
 
   const esphomeOpts = hardware.esp32.platformio_options ? { platformio_options: hardware.esp32.platformio_options } : {};
+  if (config?.vertical) esphomeOpts.min_version = '2026.4.0';
+  const widthRef = '${width}';
+  const heightRef = '${height}';
   return `${generateCoreHardwareConfig(hardware.esp32, esphomeOpts)}
 
 ${spiSection}
@@ -284,12 +302,10 @@ ${pinBlock(display.dc_pin, 6)}
     invert_colors: ${display.invert_colors}
     color_palette: ${display.color_palette}
     update_interval: never
-    auto_clear_enabled: false
-    transform:
-${displayTransform}
+    auto_clear_enabled: false${displayTransformBlock}
     dimensions:
-      width: \${width}
-      height: \${height}
+      width: ${widthRef}
+      height: ${heightRef}
 
 touchscreen:
   - id: main_touchscreen
@@ -302,9 +318,7 @@ touchscreen:
       x_min: ${touch.calibration.x_min}
       x_max: ${touch.calibration.x_max}
       y_min: ${touch.calibration.y_min}
-      y_max: ${touch.calibration.y_max}
-    transform:
-${touchTransform}
+      y_max: ${touch.calibration.y_max}${touchTransformBlock}
     on_release:
       - if:
           condition: lvgl.is_paused
@@ -320,9 +334,10 @@ function generateGuitionHardwareConfig(boardConfig, config, deps) {
   const qspi = hardware.display.qspi;
   const touch = hardware.touch;
   const esphomeOpts = hardware.esp32.platformio_options ? { platformio_options: hardware.esp32.platformio_options } : {};
+  if (config?.vertical) esphomeOpts.min_version = '2026.4.0';
   const displayModel = hardware.display.model ? `\n    model: ${hardware.display.model}` : '';
   const dataRate = hardware.display.data_rate ? `\n    data_rate: ${hardware.display.data_rate}` : '';
-  const rotation = hardware.display.rotation !== undefined ? `\n    rotation: ${hardware.display.rotation}` : '';
+  const rotation = !config?.vertical && hardware.display.rotation !== undefined ? `\n    rotation: ${hardware.display.rotation}` : '';
   const initSeq = hardware.display.init_sequence && hardware.display.init_sequence.length ? `\n    init_sequence:\n${hardware.display.init_sequence.map(b => {
     const arr = Array.isArray(b) ? b : [b];
     return `      - [${arr.map(v => '0x' + v.toString(16).padStart(2, '0')).join(', ')}]`;
@@ -337,6 +352,8 @@ function generateGuitionHardwareConfig(boardConfig, config, deps) {
     : '';
   esphomeOpts.on_boot = `\n    - priority: -100\n      then:\n        - component.update: main_display`;
 
+  const widthRef = config?.vertical ? '${display_width}' : '${width}';
+  const heightRef = config?.vertical ? '${display_height}' : '${height}';
   return `${generateCoreHardwareConfig(hardware.esp32, esphomeOpts)}
 
 i2c:
@@ -370,8 +387,8 @@ display:
     update_interval: never
     auto_clear_enabled: false
     dimensions:
-      width: \${width}
-      height: \${height}${displayTransform}${displayModel}${dataRate}${rotation}${initSeq}
+      width: ${widthRef}
+      height: ${heightRef}${displayTransform}${displayModel}${dataRate}${rotation}${initSeq}
     cs_pin:${qspi.cs && typeof qspi.cs === 'object' ? `\n${pinBlock(qspi.cs, 6)}` : ` ${pinValue(qspi.cs)}`}
 
 touchscreen:
@@ -394,7 +411,7 @@ ${Object.entries(composedTouchTransform).map(([k, v]) => `      ${k}: ${v}`).joi
 
 export function generateHardwareConfig(boardConfig, config, deps) {
   if (!boardConfig?.hardware) return deps.hardwareConfig || '';
-  if (boardConfig.id === 'esp32-2432s028-2port' && deps.hardwareConfig && !config?.rotate180) return deps.hardwareConfig;
+  if (boardConfig.id === 'esp32-2432s028-2port' && deps.hardwareConfig && !config?.rotate180 && !config?.vertical) return deps.hardwareConfig;
   if (boardConfig.hardware.display?.qspi || boardConfig.hardware.touch?.driver === 'gt911') return generateGuitionHardwareConfig(boardConfig, config, deps);
   return generateCydHardwareConfig(boardConfig, config, deps);
 }
@@ -659,11 +676,13 @@ export function generateLVGLWidgets(buttons, deps) {
     return a.col - b.col;
   });
 
-  const gridColumns = deps.config?.gridColumns ?? 4;
-  const gridRows = deps.config?.gridRows ?? 3;
+  const logicalColumns = deps.config?.gridColumns ?? 4;
+  const logicalRows = deps.config?.gridRows ?? 3;
+  const { columns: gridColumns, rows: gridRows } = getDisplayGrid(deps.config);
 
   sorted.forEach(btn => {
-    if (btn.empty || btn.col >= gridColumns || btn.row >= gridRows) return;
+    if (btn.empty || btn.col >= logicalColumns || btn.row >= logicalRows) return;
+    const position = logicalToYamlGrid(btn.col, btn.row, logicalColumns, logicalRows, deps.config?.vertical, deps.config?.rotate180);
     const isCheckable = btn.type === 'checkable' || btn.type === 'number_sync';
     const hasTimerDefaultLabel = isCheckable && btn.timerDefaultLabel && String(btn.timerDefaultLabel).trim();
     const colorRef = `btn_${buttons.indexOf(btn) + 1}_color`;
@@ -676,8 +695,8 @@ export function generateLVGLWidgets(buttons, deps) {
                    file: cyd-lib/templates/cyd_button_widget_checkable.yaml
                    vars:
                      id: ${btn.id}
-                     col: ${btn.col}
-                     row: ${btn.row}
+                     col: ${position.col}
+                     row: ${position.row}
                      color: ${colorValue}
                      icon: ${yamlQuoted(btn.icon)}
 ${fontLine}                     label: ${yamlQuoted(btn.label)}`);
@@ -686,8 +705,8 @@ ${fontLine}                     label: ${yamlQuoted(btn.label)}`);
                    file: cyd-lib/templates/cyd_button_widget.yaml
                    vars:
                      id: ${btn.id}
-                     col: ${btn.col}
-                     row: ${btn.row}
+                     col: ${position.col}
+                     row: ${position.row}
                      color: ${colorRef}
                      icon: ${yamlQuoted(btn.icon)}
 ${fontLine}                     label: ${yamlQuoted(btn.label)}`);
@@ -713,9 +732,11 @@ export function calculateLVGLLayoutScale(boardConfig, gridColumns = 4, gridRows 
 
 export function generateLVGLSection(buttons, deps) {
   const widgets = generateLVGLWidgets(buttons, deps);
-  const gridColumns = deps.config?.gridColumns ?? 4;
-  const gridRows = deps.config?.gridRows ?? 3;
-  const { outerMargin } = calculateLVGLLayoutScale(deps.boardConfig, gridColumns, gridRows);
+  const { columns: gridColumns, rows: gridRows } = getDisplayGrid(deps.config);
+  const boardConfig = deps.config?.vertical
+    ? { ...deps.boardConfig, width: deps.boardConfig?.height, height: deps.boardConfig?.width }
+    : deps.boardConfig;
+  const { outerMargin } = calculateLVGLLayoutScale(boardConfig, gridColumns, gridRows);
   const gridColumnsArr = Array(gridColumns).fill('fr(1)');
   const gridRowsArr = Array(gridRows).fill('fr(1)');
 
@@ -861,6 +882,15 @@ export function decodeMetadata(yamlText) {
 export function generateFullYAML(config, deps) {
   const { normalizeImportedConfig, hardwareConfig } = deps;
   const { config: normalizedConfig } = normalizeImportedConfig(config);
+  if (Array.isArray(config?.buttons)) {
+    normalizedConfig.buttons.forEach((button, index) => {
+      const source = config.buttons[index];
+      if (!source || source.empty) return;
+      if (!Number.isInteger(source.col) || !Number.isInteger(source.row) || source.col < 0 || source.row < 0 || source.col >= normalizedConfig.gridColumns || source.row >= normalizedConfig.gridRows) {
+        button.empty = true;
+      }
+    });
+  }
   const boardConfig = (config?.board || deps.getBoardConfig || deps.isSupportedBoard || deps.BOARD_CONFIGS)
     ? resolveBoardConfig(config, deps)
     : null;
@@ -888,6 +918,7 @@ export function generateFullYAML(config, deps) {
   yaml += '\n' + encodeMetadata(normalizedConfig) + '\n';
 
   if (normalizedConfig.rawBlocks?.length) {
+    yaml += '\n# Imported unsupported blocks preserved\n';
     for (const block of normalizedConfig.rawBlocks) {
       yaml += `\n${CUSTOM_MARKER_BEGIN}\n${block}\n${CUSTOM_MARKER_END}\n`;
     }

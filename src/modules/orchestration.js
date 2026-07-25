@@ -374,6 +374,7 @@ function setupGlobalSettings() {
     store.update('Change board', state => {
       state.board = nextBoard;
       const boardConfig = getBoardConfig(nextBoard) || getBoardConfig(DEFAULT_BOARD_ID);
+      if (boardConfig.capabilities?.portrait !== true) state.vertical = false;
       const grid = ui.getNormalizedGridForBoard(boardConfig, state.gridColumns || DEFAULT_CONFIG.gridColumns, state.gridRows || DEFAULT_CONFIG.gridRows);
       state.gridColumns = grid.columns;
       state.gridRows = grid.rows;
@@ -433,6 +434,13 @@ function setupGlobalSettings() {
 
   document.getElementById('rotate-180')?.addEventListener('change', (e) => {
     store.update('Toggle 180° rotation', state => { state.rotate180 = e.target.checked; });
+  });
+
+  document.getElementById('vertical-screen')?.addEventListener('change', (e) => {
+    store.update('Toggle vertical screen', state => {
+      const boardConfig = getBoardConfig(state.board || DEFAULT_BOARD_ID);
+      state.vertical = boardConfig?.capabilities?.portrait === true && e.target.checked;
+    });
   });
 
   document.getElementById('icon-size')?.addEventListener('input', (e) => {

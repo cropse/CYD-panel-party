@@ -309,6 +309,13 @@ h2 {
   width: 100%;
 }
 
+.grid-preview.vertical {
+  aspect-ratio: 3 / 4;
+  min-height: 0;
+  max-width: 420px;
+  margin-inline: auto;
+}
+
 .grid-cell {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -1889,5 +1896,4 @@ Utilities
 .skip-link:focus {
   top: 0;
 }
-
 

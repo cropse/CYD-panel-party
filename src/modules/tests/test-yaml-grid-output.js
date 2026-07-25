@@ -1,8 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { generateLVGLSection, generateLVGLWidgets, generateHardwareConfig, generateFullYAML } from '../yaml-engine.js';
-import { ACTION_SCHEMAS, DEFAULT_CONFIG, DEFAULT_BUTTON, BOARD_CONFIGS, getBoardConfig, isSupportedBoard, DEFAULT_BOARD_ID } from '../config.js';
-import { normalizeImportedConfig } from '../import.js';
+import { ACTION_SCHEMAS, DEFAULT_CONFIG, DEFAULT_BUTTON, BOARD_CONFIGS, HARDWARE_CONFIG, getBoardConfig, isSupportedBoard, DEFAULT_BOARD_ID } from '../config.js';
+import { importFromYAML, normalizeImportedConfig } from '../import.js';
+import { displayToLogical, logicalToDisplay } from '../orientation.js';
 
 const baseDeps = {
   normalizeColor: (c) => {
@@ -150,6 +151,25 @@ describe('generateLVGLSection grid dimensions', () => {
     const rowEntries = rowMatch[1].split(',').map(s => s.trim()).filter(Boolean);
     assert.strictEqual(rowEntries.length, 3);
   });
+
+  it('vertical mode emits a native 3×4 LVGL grid without software rotation', () => {
+    const deps = testDeps({
+      boardConfig: BOARD_CONFIGS['esp32-2432s028-2port'],
+      config: { gridColumns: 4, gridRows: 3, vertical: true }
+    });
+    const out = generateLVGLSection([baseBtn], deps);
+    const colEntries = out.match(/grid_columns:\s*\[([^\]]+)\]/)[1].split(',').filter(Boolean);
+    const rowEntries = out.match(/grid_rows:\s*\[([^\]]+)\]/)[1].split(',').filter(Boolean);
+    assert.doesNotMatch(out, /\n  rotation:/);
+    assert.strictEqual(colEntries.length, 3);
+    assert.strictEqual(rowEntries.length, 4);
+  });
+
+  it('vertical plus rotate180 previews the inverse 270-degree orientation', () => {
+    const display = logicalToDisplay(0, 0, 4, 3, true, true);
+    assert.deepStrictEqual(display, { col: 0, row: 3 });
+    assert.deepStrictEqual(displayToLogical(display.col, display.row, 4, 3, true, true), { col: 0, row: 0 });
+  });
 });
 
 // ── generateLVGLWidgets out-of-bounds ────────────────────────────────────
@@ -197,6 +217,25 @@ describe('generateLVGLWidgets out-of-bounds skipping', () => {
     assert.ok(!out.includes('btn_2'), 'col 5 should be out of bounds');
     assert.ok(!out.includes('btn_3'), 'row 4 should be out of bounds');
   });
+
+  it('vertical YAML positions match the rotated preview and preserve button IDs', () => {
+    const btns = Array.from({ length: 12 }, (_, index) => ({
+      type: 'stateless',
+      id: `btn_${index + 1}`,
+      col: index % 4,
+      row: Math.floor(index / 4),
+      icon: '\\U000F0335',
+      label: `Button ${index + 1}`,
+      color: 'FFFFFF',
+      shortPress: { enabled: true },
+      longPress: { enabled: false }
+    }));
+    const out = generateLVGLWidgets(btns, testDeps({ config: { gridColumns: 4, gridRows: 3, vertical: true } }));
+    btns.forEach(button => {
+      const expected = logicalToDisplay(button.col, button.row, 4, 3, true, false);
+      assert.match(out, new RegExp(`id: ${button.id}[\\s\\S]*?col: ${expected.col}[\\s\\S]*?row: ${expected.row}`));
+    });
+  });
 });
 
 // ── generateHardwareConfig rotate180 transform ───────────────────────────
@@ -227,6 +266,14 @@ describe('generateHardwareConfig rotate180 transform', () => {
     assert.strictEqual(touchTransform.swap_xy, true);
     assert.strictEqual(touchTransform.mirror_x, true, 'touch should have mirror_x true when rotated 180');
     assert.strictEqual(touchTransform.mirror_y, true, 'touch should have mirror_y true when rotated 180');
+  });
+
+  it('CYD vertical mode mirrors touch horizontally while keeping the display native', () => {
+    const board = BOARD_CONFIGS['esp32-2432s028-2port'];
+    const out = generateHardwareConfig(board, { rotate180: false, vertical: true }, hwDeps());
+    assert.deepStrictEqual(extractTransformKeys(out, 'display:'), {});
+    assert.deepStrictEqual(extractTransformKeys(out, 'touchscreen:'), { mirror_x: true });
+    assert.match(out, /dimensions:\n      width: \$\{width\}\n      height: \$\{height\}/);
   });
 
   it('CYD 480×320 rotate180=false preserves existing board mirror_x on touch', () => {
@@ -338,7 +385,62 @@ describe('generateFullYAML grid and flip integration', () => {
     assert.strictEqual(touchTransform.mirror_y, true);
   });
 
-  it('full YAML with out-of-bounds buttons does not emit them', () => {
+  it('full YAML vertical mode swaps substitutions and survives roundtrip with stable IDs', () => {
+    const config = {
+      ...structuredClone(DEFAULT_CONFIG),
+      deviceName: 'vertical-cyd',
+      vertical: true
+    };
+    const yaml = generateFullYAML(config, fullDeps());
+    const imported = importFromYAML(yaml).config;
+    assert.match(yaml, /width: "240"/);
+    assert.match(yaml, /height: "320"/);
+    assert.match(yaml, /min_version: 2026\.4\.0/);
+    assert.match(yaml, /dimensions:\n      width: \$\{width\}\n      height: \$\{height\}/);
+    assert.deepStrictEqual(extractTransformKeys(yaml, 'display:'), {});
+    assert.deepStrictEqual(extractTransformKeys(yaml, 'touchscreen:'), { mirror_x: true });
+    assert.doesNotMatch(yaml, /lvgl:\n  rotation:/);
+    assert.strictEqual(imported.vertical, true);
+    assert.strictEqual(imported.gridColumns, 4);
+    assert.strictEqual(imported.gridRows, 3);
+    assert.deepStrictEqual(imported.buttons.map(button => button.id), config.buttons.map(button => button.id));
+    assert.deepStrictEqual(imported.buttons.map(button => [button.col, button.row]), config.buttons.map(button => [button.col, button.row]));
+  });
+
+  it('full YAML vertical mode bypasses the default-board legacy hardware fallback', () => {
+    const config = {
+      ...structuredClone(DEFAULT_CONFIG),
+      deviceName: 'vertical-cyd',
+      vertical: true
+    };
+    const yaml = generateFullYAML(config, fullDeps({ hardwareConfig: HARDWARE_CONFIG }));
+    const hardware = yaml.slice(yaml.indexOf('\ndisplay:') + 1, yaml.indexOf('\nfont:'));
+    assert.deepStrictEqual(extractTransformKeys(hardware, 'display:'), {});
+    assert.deepStrictEqual(extractTransformKeys(hardware, 'touchscreen:'), { mirror_x: true });
+    assert.match(hardware, /dimensions:\n      width: \$\{width\}\n      height: \$\{height\}/);
+  });
+
+  it('full YAML preserves rotate180 when vertical mode is enabled', () => {
+    const config = {
+      ...structuredClone(DEFAULT_CONFIG),
+      deviceName: 'vertical-rotated-cyd',
+      vertical: true,
+      rotate180: true
+    };
+    const yaml = generateFullYAML(config, fullDeps());
+    const imported = importFromYAML(yaml).config;
+    const displayTransform = extractTransformKeys(yaml, 'display:');
+    const touchTransform = extractTransformKeys(yaml, 'touchscreen:');
+    assert.strictEqual(displayTransform.mirror_x, undefined);
+    assert.strictEqual(displayTransform.mirror_y, true);
+    assert.strictEqual(touchTransform.mirror_x, undefined);
+    assert.strictEqual(touchTransform.mirror_y, true);
+    assert.doesNotMatch(yaml, /lvgl:\n  rotation:/);
+    assert.strictEqual(imported.vertical, true);
+    assert.strictEqual(imported.rotate180, true);
+  });
+
+  it('full YAML normalizes out-of-bounds button positions without changing IDs', () => {
     const config = {
       deviceName: 'test-cyd',
       niceName: 'Test CYD',

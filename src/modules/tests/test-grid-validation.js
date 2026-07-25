@@ -43,6 +43,16 @@ describe('normalizeImportedConfig - grid/flip fields', () => {
     assert.strictEqual(config.gridColumns, 4);
     assert.strictEqual(config.gridRows, 3);
     assert.strictEqual(config.rotate180, false);
+    assert.strictEqual(config.vertical, false);
+  });
+
+  it('disables vertical mode for boards without portrait support', () => {
+    const { config, warnings } = normalizeImportedConfig({
+      ...makeValidConfig({ board: 'esp32-3248s035c' }),
+      vertical: true
+    });
+    assert.strictEqual(config.vertical, false);
+    assert.ok(warnings.some(warning => warning.includes('Vertical mode')));
   });
 
   it('preserves valid 4x3 grid for small board', () => {
@@ -322,6 +332,18 @@ describe('validateConfig - rotate180 validation', () => {
     const result = validateConfig(cfg, { ACTION_SCHEMAS });
     const gridErrors = result.errors.filter(e => e.message.toLowerCase().includes('grid dimensions'));
     assert.strictEqual(gridErrors.length, 0);
+  });
+});
+
+describe('validateConfig - vertical validation', () => {
+  it('allows vertical mode on the default CYD board', () => {
+    const result = validateConfig(makeValidConfig({ vertical: true }), { ACTION_SCHEMAS });
+    assert.strictEqual(result.errors.some(error => error.selector === '#vertical-screen'), false);
+  });
+
+  it('rejects vertical mode on unverified boards', () => {
+    const result = validateConfig(makeValidConfig({ board: 'esp32-3248s035c', gridColumns: 4, gridRows: 4, vertical: true }), { ACTION_SCHEMAS });
+    assert.ok(result.errors.some(error => error.selector === '#vertical-screen'));
   });
 });
 

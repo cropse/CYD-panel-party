@@ -23,11 +23,11 @@ A web-based tool for generating ESPHome YAML configurations for CYD (Cheap Yello
   - Cover control (open, close, set position)
   - Media player control
   - Automation triggers
-- **Presets**: Pre-configured templates (Living Room, Bedroom)
+- **Presets**: Pre-configured templates (Living Room, Back Garden, Bedroom)
 - **YAML Import/Export**: Save, edit, and reload ESPHome YAML configurations
 - **YAML Output**: Copy or download generated configuration
 - **Dark/Light Theme**: Toggle between themes
-- **Offline Support**: Works offline after initial load (icon search requires internet)
+- **Icon Search**: Searches 7000+ Material Design Icons (requires internet; results cached in localStorage for 7 days)
 
 ## Supported Boards
 
@@ -91,14 +91,36 @@ A button that syncs its state with a Home Assistant entity:
 - Visual indication of current state
 - Requires entity ID and state icons
 
+#### Timer Sync Button
+A button that syncs with a Home Assistant `timer` entity:
+- Shows a default label when the timer is idle
+- Displays remaining time while the timer is running
+- Requires a timer entity ID and default label
+
+#### Number Sync Button
+A button that syncs with a Home Assistant `number` or `sensor` entity:
+- Flips between two icons based on a numeric threshold
+- Requires entity ID, threshold value, and icon-on/icon-off
+
 ### Home Assistant Actions
 
-| Action Type | Description | Fields |
-|-------------|-------------|--------|
+| Action Type | Description | Key Fields |
+|-------------|-------------|------------|
 | Script | Call a Home Assistant script | Script ID |
-| Switch | Control a switch entity | Entity ID, Operation (toggle/turn_on/turn_off) |
-| Cover | Control a cover/blinds | Entity ID, Operation, Position (for set_cover_position) |
-| Media Player | Control media playback | Entity ID, Operation (play_pause/next_track/stop) |
+| Custom | Call any HA service with arbitrary action + JSON data | Action, Data (JSON) |
+| Switch | Control a switch entity | Entity/Device ID, Operation (toggle/turn_on/turn_off) |
+| Light | Control a light entity | Entity/Device ID, Operation (turn_on/turn_off/toggle), Brightness |
+| Cover | Control a cover/blinds | Entity/Device ID, Operation (open/close/stop/set_cover_position), Position |
+| Media Player | Control media playback | Entity/Device ID, Operation (play_pause/play/stop/next_track/prev_track/mute) |
+| Climate | Control a climate/HVAC entity | Entity/Device ID, Operation (set_hvac_mode/set_temperature), HVAC Mode |
+| Fan | Control a fan entity | Entity/Device ID, Operation (turn_on/turn_off/toggle/set_percentage) |
+| Vacuum | Control a vacuum/robot cleaner | Entity/Device ID, Operation (start/stop/return_to_base/start_pause) |
+| Lock | Control a lock entity | Entity/Device ID, Operation (lock/unlock/open) |
+| Scene | Activate a scene | Scene ID |
+| Input Boolean | Toggle an input_boolean | Entity ID, Operation (toggle/turn_on/turn_off) |
+| Input Select | Select an option on input_select | Entity ID, Option |
+| Humidifier | Control a humidifier | Entity/Device ID, Operation (turn_on/turn_off/toggle/set_humidity) |
+| Button | Trigger a button entity | Entity ID |
 | Automation | Trigger an automation | Automation ID |
 
 ### Presets
@@ -117,18 +139,29 @@ A button that syncs its state with a Home Assistant entity:
 
 ### GitHub Pages
 
+Deployment is automated via the GitHub Actions workflow in `.github/workflows/deploy.yml`. On push to `main` or `master`, it builds the project and publishes the `dist/` folder to GitHub Pages.
+
+To set up manually:
+
 1. Push this repository to GitHub
 2. Go to Settings → Pages
 3. Select source: "Deploy from a branch"
-4. Select branch: `main` (or your preferred branch)
-5. Select folder: `/ (root)`
+4. Select branch: `master` (or `main`)
+5. Select folder: `/ (root)` — the workflow handles building `dist/` automatically
 6. Save and wait for deployment
 
 The app is live at **https://cropse.github.io/Yellow-CYD-party/**
 
 ### Local Usage
 
-Simply open `index.html` in a web browser. No server required.
+The app uses ES modules, so opening `index.html` directly won't work (browsers block module loading over `file://`). Run a dev server instead:
+
+```bash
+npm install
+npm run dev
+```
+
+Then open the URL Vite prints (typically `http://localhost:5173`).
 
 ## Generated YAML Structure
 
@@ -147,7 +180,7 @@ esp32:
 # ... hardware config (display, touchscreen, SPI, etc.)
 
 font:
-  # Roboto fonts + Material Design Icons
+  # Arimo fonts + Material Design Icons
 
 color:
   # Per-button color definitions
@@ -179,28 +212,46 @@ lvgl:
 
 ```
 Yellow-CYD-party/
-├── index.html          # Web app (single file)
-├── README.md           # This documentation
-├── cyd-lib/            # ⚠️ Required by generated YAML — copy into your ESPHome folder
-│   ├── fonts/          # Arimo-Regular.ttf, materialdesignicons-webfont.ttf
-│   └── templates/      # Button/widget templates (checkable, stateless, state-sync, etc.)
-├── esphome/            # ESPHome configurations
+├── index.html              # Vite HTML entry point
+├── package.json            # Dependencies and scripts
+├── vite.config.js          # Vite build config (chunk splitting, cyd-lib copy)
+├── README.md               # This documentation
+├── cyd-lib/                # ⚠️ Required by generated YAML — copy into your ESPHome folder
+│   ├── fonts/              # Arimo-Regular.ttf, materialdesignicons-webfont.ttf
+│   └── templates/          # Button/widget templates (checkable, stateless, state-sync, etc.)
+├── src/
+│   ├── main.js             # Entry point — app init, event listeners, orchestration
+│   ├── styles/
+│   │   └── main.css        # All CSS
+│   └── modules/
+│       ├── config.js       # Constants: boards, presets, action schemas, defaults
+│       ├── board-configs.js # Board hardware definitions
+│       ├── store.js        # State management with undo/redo
+│       ├── yaml-engine.js  # YAML generation
+│       ├── validation-engine.js # Config validation
+│       ├── import.js       # Import/normalize config logic
+│       ├── mdi.js          # MDI icon loading and search
+│       ├── utils.js        # Utility functions
+│       └── tests/          # Unit and integration tests
+├── dist/                   # Production build output (gitignored, created by `npm run build`)
+├── esphome/                # ESPHome configurations (gitignored)
 │   ├── back-garden-cyd.yaml
 │   ├── living-room-cyd.yaml
-│   ├── templates/      # Reusable templates
-│   ├── fonts/          # Font files
-│   └── devices/        # Device definitions
-└── back-garden-cyd.yaml
+│   ├── fonts/              # Font files
+│   └── devices/            # Device definitions
+└── back-garden-cyd.yaml    # Golden reference YAML
 ```
 
 ## Technical Details
 
 ### Technologies Used
 
+- **Vite 5.x**: Development server and production build tool
 - **HTML5**: Semantic structure
 - **CSS3**: Mobile-first responsive design, CSS variables, flexbox/grid
-- **JavaScript (ES6+)**: Vanilla JS, no dependencies
-- **Material Design Icons**: CDN integration with caching
+- **JavaScript (ES6+)**: ES modules, no frontend framework
+- **yaml (npm)**: YAML parsing for import/export roundtrip
+- **Material Design Icons**: CDN integration with localStorage caching
 
 ### Data Storage
 

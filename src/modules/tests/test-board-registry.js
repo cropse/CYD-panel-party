@@ -84,6 +84,8 @@ describe('BOARD_CONFIGS', () => {
     assert.strictEqual(b.capabilities.rgbLed, true);
     assert.ok(b.hardware.rgbLed, 'expected rgbLed hardware config');
     assert.strictEqual(b.hardware.rgbLed.inverted, true);
+    assert.strictEqual(b.hardware.rgbLed.greenPin, 'GPIO16');
+    assert.strictEqual(b.hardware.rgbLed.bluePin, 'GPIO17');
   });
 
   it('esp32-e32r28t has NO rgbLed', () => {
@@ -125,7 +127,7 @@ describe('BOARD_CONFIGS', () => {
     assert.strictEqual(b.hardware.display.driver, 'qspi_dbi');
     assert.strictEqual(b.hardware.display.model, 'CUSTOM');
     assert.strictEqual(b.hardware.display.data_rate, '20MHz');
-    assert.strictEqual(b.hardware.display.rotation, 180);
+    assert.strictEqual(b.hardware.display.rotation, 0);
     assert.ok(Array.isArray(b.hardware.display.init_sequence));
     assert.ok(b.hardware.display.init_sequence.length > 80);
     assert.strictEqual(b.capabilities.rgbLed, false);

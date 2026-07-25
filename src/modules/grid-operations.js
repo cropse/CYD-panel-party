@@ -171,15 +171,16 @@ export function createGridOperations(deps) {
     const delta = keyMap[e.key];
     if (!delta) return;
     e.preventDefault();
-    const maxCol = getGridColumns() - 1;
-    const maxRow = getGridRows() - 1;
+    const vertical = Boolean(getState().vertical);
+    const maxCol = (vertical ? getGridRows() : getGridColumns()) - 1;
+    const maxRow = (vertical ? getGridColumns() : getGridRows()) - 1;
     const newCol = Math.max(0, Math.min(maxCol, col + delta[0]));
     const newRow = Math.max(0, Math.min(maxRow, row + delta[1]));
-    const targetCell = document.querySelector(`.grid-cell[data-col="${newCol}"][data-row="${newRow}"]`);
+    const targetCell = document.querySelector(`.grid-cell[data-display-col="${newCol}"][data-display-row="${newRow}"]`);
     if (targetCell) {
       targetCell.focus();
       const appState = getState();
-      const targetBtnIndex = appState.buttons.findIndex(b => b.col === newCol && b.row === newRow);
+      const targetBtnIndex = Number.parseInt(targetCell.dataset.btnIndex, 10);
       if (targetBtnIndex >= 0) {
         selectButton(targetBtnIndex);
       }

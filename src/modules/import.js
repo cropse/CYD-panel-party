@@ -2,6 +2,7 @@ import { DEFAULT_CONFIG, DEFAULT_BUTTON, DEFAULT_LED, ACTION_SCHEMAS, DEFAULT_BO
 import { normalizeColor, clampNumber, ensureUniquePositions, isPlainYAMLObject, sanitizeDeviceName, cleanYAMLValue, getYAMLSection, splitTopLevelListItems, parseYAMLKeyValue } from './utils.js';
 import { decodeMetadata } from './yaml-engine.js';
 import YamlPkg from 'yaml';
+import { yamlGridToLogical } from './orientation.js';
 
 function normalizeLedColor(raw) {
   if (!raw || typeof raw !== 'object') return { ...DEFAULT_LED.color };
@@ -46,7 +47,9 @@ export function normalizeImportedConfig(rawConfig) {
   const boardConfig = getBoardConfig(board);
   const grid = normalizeGridConfig(source, boardConfig);
   // Backward compatibility: map old flipHorizontal to rotate180
-const rotate180 = source.rotate180 !== undefined ? Boolean(source.rotate180) : Boolean(source.flipHorizontal);
+  const rotate180 = source.rotate180 !== undefined ? Boolean(source.rotate180) : Boolean(source.flipHorizontal);
+  const vertical = boardConfig.capabilities?.portrait === true && Boolean(source.vertical);
+  if (source.vertical && !vertical) warnings.push(`Vertical mode is not supported for board "${board}" and was disabled.`);
 
   if (
     (source.gridColumns !== undefined && source.gridColumns !== grid.gridColumns) ||
@@ -64,6 +67,7 @@ const rotate180 = source.rotate180 !== undefined ? Boolean(source.rotate180) : B
     gridColumns: grid.gridColumns,
     gridRows: grid.gridRows,
     rotate180,
+    vertical,
     iconSize: clampNumber(source.iconSize, 16, 96, DEFAULT_CONFIG.iconSize),
     led: normalizeLedConfig(source.led),
     buttons: Array(buttonCount).fill(null).map((_, index) => normalizeButton(buttons[index], index, warnings, grid.gridColumns - 1, grid.gridRows - 1))
@@ -376,6 +380,14 @@ function parseGridDimensions(raw) {
   return { gridColumns: DEFAULT_CONFIG.gridColumns, gridRows: DEFAULT_CONFIG.gridRows };
 }
 
+function parseVertical(raw, sub, boardConfig) {
+  const legacyRotation = [90, 270].includes(Number(asObject(raw?.lvgl).rotation));
+  const portraitDimensions = Number(sub.width) === Number(boardConfig.height)
+    && Number(sub.height) === Number(boardConfig.width)
+    && Number(boardConfig.width) !== Number(boardConfig.height);
+  return boardConfig.capabilities?.portrait === true && (legacyRotation || portraitDimensions);
+}
+
 function fingerprintBoard(raw, sub) {
   const esp32 = asObject(raw?.esp32);
   const boardName = asString(esp32.board);
@@ -410,7 +422,9 @@ function fingerprintBoard(raw, sub) {
     const hwEsp32 = hw.esp32 || {};
     if (hwEsp32.board !== boardName) continue;
     if (hwEsp32.framework !== fwType && !(fwType === 'esp-idf' && hwEsp32.framework === 'esp-idf')) continue;
-    if (Number(bc.width) !== Number(sub.width) || Number(bc.height) !== Number(sub.height)) continue;
+    const dimensionsMatch = Number(bc.width) === Number(sub.width) && Number(bc.height) === Number(sub.height);
+    const portraitMatch = Number(bc.width) === Number(sub.height) && Number(bc.height) === Number(sub.width);
+    if (!dimensionsMatch && !portraitMatch) continue;
     if (bc.capabilities?.rgbLed !== hasRgb) continue;
     return id;
   }
@@ -419,12 +433,16 @@ function fingerprintBoard(raw, sub) {
 }
 
 function parseRotate180(raw, boardId) {
+  if (Number(asObject(raw?.lvgl).rotation) === 270) return true;
   const display = asArray(raw?.display);
   if (!display.length) return false;
   const dispObj = asObject(display[0]);
   const transform = asObject(dispObj.transform);
   const bc = getBoardConfig(boardId);
   if (!bc?.hardware?.display?.transform) return false;
+
+  // Portrait/vertical mode: rotate180 uses mirror_y only on display (no swap_xy, no mirror_x)
+  if (!transform.swap_xy && Boolean(transform.mirror_y) && !Boolean(transform.mirror_x)) return true;
 
   const boardTx = bc.hardware.display.transform;
   const boardMirrorX = Boolean(boardTx.mirror_x);
@@ -702,7 +720,10 @@ export function importFromYAML(yamlText) {
     const niceName = sub.niceName || DEFAULT_CONFIG.niceName;
     const board = fingerprintBoard(raw, sub);
     const boardConfig = getBoardConfig(board);
-    const { gridColumns, gridRows } = parseGridDimensions(raw);
+    const vertical = parseVertical(raw, sub, boardConfig);
+    const parsedGrid = parseGridDimensions(raw);
+    const gridColumns = vertical ? parsedGrid.gridRows : parsedGrid.gridColumns;
+    const gridRows = vertical ? parsedGrid.gridColumns : parsedGrid.gridRows;
     const displayTimeout = parseDisplayTimeout(raw, sub);
     const iconSize = parseIconSize(raw, sub);
     const rotate180 = parseRotate180(raw, board);
@@ -720,6 +741,11 @@ export function importFromYAML(yamlText) {
 
     const buttons = Array(buttonCount).fill(null).map((_, i) => {
       const parsed = buttonsWithActions[i] || null;
+      if (parsed && vertical) {
+        const logical = yamlGridToLogical(parsed.col, parsed.row, gridColumns, gridRows, true, rotate180);
+        parsed.col = logical.col;
+        parsed.row = logical.row;
+      }
       return normalizeButton(parsed, i, warnings, maxCol, maxRow);
     });
     ensureUniquePositions(buttons, warnings);
@@ -732,6 +758,7 @@ export function importFromYAML(yamlText) {
       gridColumns: grid.gridColumns,
       gridRows: grid.gridRows,
       rotate180,
+      vertical,
       iconSize,
       led,
       buttons,
