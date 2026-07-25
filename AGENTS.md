@@ -1,4 +1,4 @@
-# AGENTS.md — cyd-panel-party
+# AGENTS.md — CYD-panel-party
 
 > Compact guidance for OpenCode agents working in this repo.
 > Last updated: 2026-05-23
