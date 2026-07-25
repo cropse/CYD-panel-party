@@ -50,7 +50,7 @@ Note: The Guition JC4827543C uses ESP32-S3 with ESP-IDF framework, QSPI display,
 
 ### Quick Start
 
-1. Open the web app
+1. Open the web app: **<https://cropse.github.io/Yellow-CYD-party/>**
 2. Click on a button in the grid to edit it
 3. Configure:
    - **Type**: Stateless or Checkable
