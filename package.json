@@ -1,5 +1,5 @@
 {
-  "name": "yellow-cyd-party",
+  "name": "cyd-panel-party",
   "version": "1.0.0",
   "description": "A web-based tool for generating ESPHome YAML configurations for CYD (Cheap Yellow Display - ESP32-2432S028R) devices.",
   "type": "module",

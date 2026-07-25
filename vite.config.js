@@ -13,7 +13,7 @@ function copyDir(src, dest) {
 }
 
 export default defineConfig({
-  base: '/Yellow-CYD-party/',
+  base: '/cyd-panel-party/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',

@@ -2,7 +2,7 @@
 
 A web-based tool for generating ESPHome YAML configurations for CYD (Cheap Yellow Display - ESP32-2432S028R) devices.
 
-**Live: https://cropse.github.io/Yellow-CYD-party/**
+**Live: https://cropse.github.io/cyd-panel-party/**
 
 ![CYD Config Generator](https://img.shields.io/badge/Platform-GitHub%20Pages-blue)
 ![ESPHome](https://img.shields.io/badge/ESPHome-2024.6%2B-orange)
@@ -50,7 +50,7 @@ Note: The Guition JC4827543C uses ESP32-S3 with ESP-IDF framework, QSPI display,
 
 ### Quick Start
 
-1. Open the web app: **<https://cropse.github.io/Yellow-CYD-party/>**
+1. Open the web app: **<https://cropse.github.io/cyd-panel-party/>**
 2. Click on a button in the grid to edit it
 3. Configure:
    - **Type**: Stateless or Checkable
@@ -150,7 +150,7 @@ To set up manually:
 5. Select folder: `/ (root)` — the workflow handles building `dist/` automatically
 6. Save and wait for deployment
 
-The app is live at **https://cropse.github.io/Yellow-CYD-party/**
+The app is live at **https://cropse.github.io/cyd-panel-party/**
 
 ### Local Usage
 
@@ -211,7 +211,7 @@ lvgl:
 ## File Structure
 
 ```
-Yellow-CYD-party/
+cyd-panel-party/
 ├── index.html              # Vite HTML entry point
 ├── package.json            # Dependencies and scripts
 ├── vite.config.js          # Vite build config (chunk splitting, cyd-lib copy)
