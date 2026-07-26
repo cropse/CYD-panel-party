@@ -1,6 +1,6 @@
 import { DEFAULT_CONFIG, DEFAULT_BUTTON, DEFAULT_LED, ACTION_SCHEMAS, DEFAULT_BOARD_ID, isSupportedBoard, getBoardConfig, normalizeGridConfig, BOARD_CONFIGS } from './config.js';
 import { normalizeColor, clampNumber, ensureUniquePositions, isPlainYAMLObject, sanitizeDeviceName, cleanYAMLValue, getYAMLSection, splitTopLevelListItems, parseYAMLKeyValue } from './utils.js';
-import { decodeMetadata } from './metadata.js';
+import { decodeMetadata, CUSTOM_MARKER_BEGIN, CUSTOM_MARKER_END } from './metadata.js';
 import YamlPkg from 'yaml';
 import { yamlGridToLogical } from './orientation.js';
 
@@ -124,11 +124,6 @@ function normalizePress(rawPress, fallbackPress, isLong = false) {
     data: isPlainYAMLObject(source.data || {}) && Object.keys(source.data || {}).length ? source.data : (isPlainYAMLObject(fallbackPress?.data || {}) ? fallbackPress.data : {})
   };
 }
-
-// ── Custom block markers ──────────────────────────────────────────────────
-
-const CUSTOM_MARKER_BEGIN = '# cyd-custom: begin';
-const CUSTOM_MARKER_END = '# cyd-custom: end';
 
 export function parseCustomBlocks(text) {
   const blocks = [];
