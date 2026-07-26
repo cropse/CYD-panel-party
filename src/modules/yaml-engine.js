@@ -3,6 +3,17 @@
 // ============================================================
 
 import { getDisplayGrid, logicalToYamlGrid } from './orientation.js';
+import {
+  DEFAULT_CONFIG, DEFAULT_BUTTON, ACTION_SCHEMAS, HARDWARE_CONFIG,
+  BOARD_CONFIGS, BOARD_OPTIONS, DEFAULT_BOARD_ID,
+  getBoardConfig, isSupportedBoard
+} from './config.js';
+import { normalizeColor, clampNumber } from './utils.js';
+import { normalizeImportedConfig } from './import.js';
+import { encodeMetadata, decodeMetadata, CUSTOM_MARKER_BEGIN, CUSTOM_MARKER_END } from './metadata.js';
+
+// Re-export for backward compatibility (tests import these from yaml-engine.js)
+export { encodeMetadata, decodeMetadata };
 
 /**
  * YAML Generation Engine - Pure functions for ESPHome YAML generation.
@@ -10,14 +21,9 @@ import { getDisplayGrid, logicalToYamlGrid } from './orientation.js';
  * This module contains all YAML generation logic, separated from UI concerns.
  * It can be tested independently and used in different contexts.
  *
- * Dependencies (passed via deps parameter):
- * - actionSchemas: ACTION_SCHEMAS object for action normalization
- * - hardwareConfig: HARDWARE_CONFIG string
- * - defaultButton: DEFAULT_BUTTON object
- * - defaultConfig: DEFAULT_CONFIG object
- * - normalizeColor: color normalization function
- * - clampNumber: number clamping function
- * - normalizeImportedConfig: config normalization function
+ * Dependencies are resolved via direct imports. The optional `deps` parameter
+ * on generateFullYAML is kept for test backward-compatibility only — if passed,
+ * its keys override the defaults from imports.
  */
 
 export function yamlScalar(value) {
@@ -115,16 +121,14 @@ export function generateRandomPassword(length = 12) {
   return password;
 }
 
-function resolveBoardConfig(config, deps) {
-  if (!deps.getBoardConfig) {
-    throw new Error('generateFullYAML requires deps.getBoardConfig from config.js');
-  }
-  const defaultBoardId = deps.DEFAULT_BOARD_ID || 'esp32-2432s028-2port';
+function resolveBoardConfig(config, deps = {}) {
+  const _getBoardConfig = deps.getBoardConfig || getBoardConfig;
+  const _isSupportedBoard = deps.isSupportedBoard || isSupportedBoard;
+  const _defaultBoardId = deps.DEFAULT_BOARD_ID || DEFAULT_BOARD_ID;
   const requestedBoard = config?.board;
   const hasBoard = typeof requestedBoard === 'string' && requestedBoard.trim();
-  const isSupported = deps.isSupportedBoard || ((id) => id in deps.BOARD_CONFIGS);
-  const boardId = hasBoard && isSupported(requestedBoard) ? requestedBoard : defaultBoardId;
-  return deps.getBoardConfig(boardId) || deps.getBoardConfig(defaultBoardId);
+  const boardId = hasBoard && _isSupportedBoard(requestedBoard) ? requestedBoard : _defaultBoardId;
+  return _getBoardConfig(boardId) || _getBoardConfig(_defaultBoardId);
 }
 
 export function generateSubstitutions(config, deps) {
@@ -785,103 +789,18 @@ export function generateLVGLSection(buttons, deps) {
 ${widgets}`;
 }
 
-// ── Metadata encoding for round-trip import ────────────────────────────────
+// ── Metadata encoding moved to metadata.js (re-exported above) ────────────
 
-const METADATA_MARKER_BEGIN = '# cyd-config: begin';
-const METADATA_MARKER_END = '# cyd-config: end';
-const CUSTOM_MARKER_BEGIN = '# cyd-custom: begin';
-const CUSTOM_MARKER_END = '# cyd-custom: end';
-const METADATA_VERSION = 1;
+export function generateFullYAML(config, deps = {}) {
+  const _normalizeImportedConfig = deps.normalizeImportedConfig || normalizeImportedConfig;
+  const _hardwareConfig = deps.hardwareConfig !== undefined ? deps.hardwareConfig : HARDWARE_CONFIG;
+  const _actionSchemas = deps.actionSchemas || ACTION_SCHEMAS;
+  const _defaultButton = deps.defaultButton || DEFAULT_BUTTON;
+  const _defaultConfig = deps.defaultConfig || DEFAULT_CONFIG;
+  const _normalizeColor = deps.normalizeColor || normalizeColor;
+  const _clampNumber = deps.clampNumber || clampNumber;
 
-function b64Encode(str) {
-  if (typeof btoa === 'function') return btoa(unescape(encodeURIComponent(str)));
-  if (typeof Buffer !== 'undefined') return Buffer.from(str, 'utf8').toString('base64');
-  const bytes = new TextEncoder().encode(str);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
-}
-
-function b64Decode(base64) {
-  if (typeof atob === 'function') return decodeURIComponent(escape(atob(base64)));
-  if (typeof Buffer !== 'undefined') return Buffer.from(base64, 'base64').toString('utf8');
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new TextDecoder().decode(bytes);
-}
-
-export function encodeMetadata(normalizedConfig) {
-  const gapFill = {
-    version: METADATA_VERSION,
-    buttons: normalizedConfig.buttons.map(btn => ({
-      id: btn.id,
-      name: btn.name,
-      empty: btn.empty || undefined,
-      timerDefaultLabel: btn.timerDefaultLabel || undefined,
-      threshold: btn.threshold != null ? String(btn.threshold) : undefined,
-      condition: btn.condition && btn.condition !== 'above' ? btn.condition : undefined
-    })).filter(b => b.name !== `Button ${b.id?.replace('btn_', '')}` || b.empty || b.timerDefaultLabel || b.threshold || b.condition)
-  };
-
-  const payload = {
-    version: METADATA_VERSION,
-    gapFill
-  };
-
-  const json = JSON.stringify(payload);
-  const base64 = b64Encode(json);
-  const lines = base64.match(/.{1,76}/g) || [];
-  return [
-    METADATA_MARKER_BEGIN,
-    ...lines.map(l => `# ${l}`),
-    METADATA_MARKER_END
-  ].join('\n');
-}
-
-export function decodeMetadata(yamlText) {
-  const lines = yamlText.split('\n');
-  const beginIdx = lines.lastIndexOf(METADATA_MARKER_BEGIN);
-  const endIdx = beginIdx >= 0 ? lines.indexOf(METADATA_MARKER_END, beginIdx + 1) : -1;
-  if (beginIdx < 0 || endIdx < 0 || endIdx <= beginIdx) {
-    if (beginIdx >= 0 || endIdx >= 0) {
-      return { gapFill: null, config: null, warnings: ['Metadata markers are present but malformed.'] };
-    }
-    return null;
-  }
-
-  const base64Lines = lines.slice(beginIdx + 1, endIdx)
-    .map(l => l.replace(/^#\s?/, ''))
-    .join('');
-  const warnings = [];
-
-  let json;
-  try {
-    json = b64Decode(base64Lines);
-  } catch {
-    warnings.push('Embedded config metadata is corrupt and could not be decoded.');
-    return { gapFill: null, config: null, warnings };
-  }
-
-  let payload;
-  try {
-    payload = JSON.parse(json);
-  } catch {
-    warnings.push('Embedded config metadata is corrupt and could not be parsed.');
-    return { gapFill: null, config: null, warnings };
-  }
-
-  if (!payload || payload.version !== METADATA_VERSION || !payload.gapFill) {
-    warnings.push('Embedded config metadata has an unsupported version or format.');
-    return { gapFill: null, config: null, warnings };
-  }
-
-  return { gapFill: payload.gapFill, config: null, warnings };
-}
-
-export function generateFullYAML(config, deps) {
-  const { normalizeImportedConfig, hardwareConfig } = deps;
-  const { config: normalizedConfig } = normalizeImportedConfig(config);
+  const { config: normalizedConfig } = _normalizeImportedConfig(config);
   if (Array.isArray(config?.buttons)) {
     normalizedConfig.buttons.forEach((button, index) => {
       const source = config.buttons[index];
@@ -900,12 +819,17 @@ export function generateFullYAML(config, deps) {
     yamlScalar,
     yamlQuoted,
     boardConfig,
-    config: normalizedConfig
+    config: normalizedConfig,
+    actionSchemas: _actionSchemas,
+    defaultButton: _defaultButton,
+    defaultConfig: _defaultConfig,
+    normalizeColor: _normalizeColor,
+    clampNumber: _clampNumber
   };
 
   const parts = [
     generateSubstitutions(normalizedConfig, sectionDeps),
-    boardConfig ? generateHardwareConfig(boardConfig, normalizedConfig, sectionDeps) : hardwareConfig,
+    boardConfig ? generateHardwareConfig(boardConfig, normalizedConfig, sectionDeps) : _hardwareConfig,
     generateFontSection(normalizedConfig.buttons, sectionDeps),
     generateColorSection(normalizedConfig.buttons, sectionDeps),
     generateNumberSection(normalizedConfig, sectionDeps),

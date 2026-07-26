@@ -207,16 +207,7 @@ function generateYAML() {
       saveState();
     }
 
-    const yaml = YamlGenerationEngine.generateFullYAML(appState, {
-      actionSchemas: ACTION_SCHEMAS,
-      hardwareConfig: HARDWARE_CONFIG,
-      defaultButton: DEFAULT_BUTTON,
-      defaultConfig: DEFAULT_CONFIG,
-      BOARD_OPTIONS, DEFAULT_BOARD_ID,
-      getBoardConfig, isSupportedBoard,
-      normalizeColor, clampNumber, normalizeImportedConfig,
-      yamlDoc, yamlSecret, yamlInclude, yamlRaw
-    });
+    const yaml = YamlGenerationEngine.generateFullYAML(appState);
 
     preview.innerHTML = YamlGenerationEngine.highlightYAML(yaml);
     return yaml;

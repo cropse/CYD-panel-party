@@ -32,22 +32,7 @@ window.isSupportedBoard = isSupportedBoard;
 window.store = store;
 window.YamlGenerationEngine = YamlGenerationEngine;
 window.ValidationEngine = ValidationEngine;
-window.generateFullYAML = (config) => YamlGenerationEngine.generateFullYAML(config, {
-  actionSchemas: ACTION_SCHEMAS,
-  hardwareConfig: HARDWARE_CONFIG,
-  defaultButton: DEFAULT_CONFIG.buttons?.[0] || {},
-  defaultConfig: DEFAULT_CONFIG,
-  DEFAULT_BOARD_ID,
-  getBoardConfig,
-  isSupportedBoard,
-  normalizeColor,
-  clampNumber,
-  normalizeImportedConfig,
-  yamlDoc,
-  yamlSecret,
-  yamlInclude,
-  yamlRaw
-});
+window.generateFullYAML = (config) => YamlGenerationEngine.generateFullYAML(config);
 window.validateConfig = (config) => ValidationEngine.validateConfig(config, {
   selectedButtonIndex: store.getSelectedIndex(),
   ACTION_SCHEMAS
