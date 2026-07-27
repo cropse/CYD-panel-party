@@ -99,7 +99,8 @@ export function createUIRendering({
     const positionMap = new Map();
     state.buttons.forEach((btn, idx) => {
       if (btn.empty) return;
-      const displayPosition = logicalToDisplay(btn.col, btn.row, logicalColumns, logicalRows, state.vertical, state.rotate180);
+      // ponytail: rotate180 is physical display rotation only — preview shows logical button positions unchanged
+      const displayPosition = logicalToDisplay(btn.col, btn.row, logicalColumns, logicalRows, state.vertical, false);
       const key = `${displayPosition.col},${displayPosition.row}`;
       if (!positionMap.has(key)) positionMap.set(key, []);
       positionMap.get(key).push(idx);
@@ -121,7 +122,7 @@ export function createUIRendering({
     }
 
     const createGridCell = (displayCol, displayRow, btnIndex, hasConflict) => {
-      const { col, row } = displayToLogical(displayCol, displayRow, logicalColumns, logicalRows, state.vertical, state.rotate180);
+      const { col, row } = displayToLogical(displayCol, displayRow, logicalColumns, logicalRows, state.vertical, false);
       const cell = document.createElement('div');
       cell.className = 'grid-cell';
       cell.dataset.col = col;
@@ -171,7 +172,7 @@ export function createUIRendering({
     for (let row = 0; row < gridRows; row++) {
       for (let col = 0; col < gridColumns; col++) {
         const slotIndex = row * gridColumns + col;
-        const logicalPosition = displayToLogical(col, row, logicalColumns, logicalRows, state.vertical, state.rotate180);
+        const logicalPosition = displayToLogical(col, row, logicalColumns, logicalRows, state.vertical, false);
         const btnIndex = state.buttons.findIndex(b => !b.empty && b.col === logicalPosition.col && b.row === logicalPosition.row);
         const hasConflict = positionMap.get(`${col},${row}`)?.length > 1;
 
