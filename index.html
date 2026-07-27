@@ -335,7 +335,7 @@
 
         <div class="form-group">
           <label for="btn-label">Label</label>
-          <input type="text" class="form-control" id="btn-label" maxlength="40">
+          <textarea class="form-control" id="btn-label" maxlength="40" rows="2"></textarea>
         </div>
 
         <div class="form-group">
@@ -377,11 +377,6 @@
               <button type="button" data-condition="below" role="radio" aria-checked="false">Below</button>
             </div>
           </div>
-          <div class="form-group hidden" id="timer-default-label-group">
-            <label for="timer-default-label">Timer Default Label</label>
-            <input type="text" class="form-control" id="timer-default-label" placeholder="e.g. Studio Garden">
-            <span class="hint">Shown when the timer is inactive.</span>
-          </div>
         </div>
 
         <div class="form-group">
@@ -408,10 +403,21 @@
               <span class="icon-name" id="icon-off-name"></span>
             </div>
           </div>
+          <div class="form-group" id="custom-colors-group">
+            <label><input type="checkbox" id="custom-colors-toggle"> Custom On/Off Colors</label>
+            <span class="hint">When off, the unavailable/off state stays grey.</span>
+          </div>
+          <div class="form-group hidden" id="custom-off-color-group">
+            <label for="color-off-native">Color Off</label>
+            <div class="color-picker">
+              <input type="color" id="color-off-native" value="#808080" aria-label="Choose off-state color">
+              <input type="text" class="form-control" id="color-off-hex" maxlength="6" placeholder="808080">
+            </div>
+          </div>
         </div>
 
         <div class="form-group">
-          <label>Color</label>
+          <label for="color-native" id="color-label">Color</label>
           <div class="color-picker">
             <input type="color" id="color-native" value="#FFFFFF" aria-label="Choose button color">
             <input type="text" class="form-control" id="color-hex" maxlength="6" placeholder="FFFFFF">
@@ -445,6 +451,7 @@
             <option value="input_boolean">Input Boolean</option>
             <option value="input_select">Input Select</option>
             <option value="humidifier">Humidifier</option>
+            <option value="timer">Timer</option>
             <option value="button">Button</option>
             <option value="automation">Automation</option>
             <option value="custom">Custom Action</option>
@@ -491,6 +498,7 @@
               <option value="input_boolean">Input Boolean</option>
               <option value="input_select">Input Select</option>
               <option value="humidifier">Humidifier</option>
+              <option value="timer">Timer</option>
               <option value="button">Button</option>
               <option value="automation">Automation</option>
               <option value="custom">Custom Action</option>

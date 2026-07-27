@@ -408,7 +408,7 @@ describe('validateConfig - button-level validation', () => {
     assert.strictEqual(iconErrors.length, 1);
   });
 
-  test('number_sync button does not require onState or timerDefaultLabel', () => {
+  test('number_sync button does not require onState', () => {
     const cfg = makeValidConfig();
     cfg.buttons[0].type = 'number_sync';
     cfg.buttons[0].haEntity = 'sensor.temperature';
@@ -417,7 +417,6 @@ describe('validateConfig - button-level validation', () => {
     cfg.buttons[0].iconOn = '\\U000F0001';
     cfg.buttons[0].iconOff = '\\U000F0002';
     cfg.buttons[0].onState = '';
-    cfg.buttons[0].timerDefaultLabel = '';
     const result = validateConfig(cfg);
     const numberErrors = result.errors.filter(e => e.message.includes('number_sync'));
     assert.strictEqual(numberErrors.length, 0);

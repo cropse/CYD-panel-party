@@ -97,13 +97,15 @@ function normalizeButton(rawButton, index, warnings = [], maxCol = 3, maxRow = 2
     type: ['stateless', 'checkable', 'timer_sync', 'number_sync'].includes(source.type) ? source.type : fallback.type,
     haEntity: source.haEntity ? String(source.haEntity).trim() : null,
     onState: String(source.onState || fallback.onState || 'on').trim() || 'on',
-    timerDefaultLabel: String(source.timerDefaultLabel || ''),
     iconOn: /^\\U000F[0-9A-Fa-f]{4}$/.test(String(source.iconOn || '')) ? source.iconOn.toUpperCase() : null,
     iconOff: /^\\U000F[0-9A-Fa-f]{4}$/.test(String(source.iconOff || '')) ? source.iconOff.toUpperCase() : null,
+    customColors: Boolean(source.customColors),
+    colorOff: normalizeColor(source.colorOff) || '808080',
     shortPress: normalizePress(source.shortPress, fallback.shortPress),
     longPress: normalizePress(source.longPress, fallback.longPress, true),
     rawBlocks: Array.isArray(source.rawBlocks) ? source.rawBlocks : []
   };
+  delete btn.timerDefaultLabel;
 
   if (btn.col !== source.col || btn.row !== source.row) warnings.push(`Button ${index + 1} position was normalized into the ${maxCol + 1}x${maxRow + 1} grid.`);
   if (!normalizeColor(source.color || btn.color)) warnings.push(`Button ${index + 1} color was invalid; default color was used.`);
@@ -537,11 +539,13 @@ function parseButtonsFromLVGL(raw, colorMap) {
           type: 'stateless',
           haEntity: null,
           onState: 'on',
-          timerDefaultLabel: '',
+
           threshold: null,
           condition: 'above',
           iconOn: null,
           iconOff: null,
+          customColors: false,
+          colorOff: '808080',
           shortPress: { enabled: false, actionType: '', action: '', data: {} },
           longPress: { enabled: false, minLength: '1000ms', maxLength: '5000ms', actionType: '', action: '', data: {} }
         };
@@ -555,6 +559,22 @@ function parseButtonsFromLVGL(raw, colorMap) {
           btn.color = colorText.replace(/^0x/i, '').toUpperCase();
         } else if (colorMap[colorText]) {
           btn.color = colorMap[colorText];
+        }
+
+        const colorOnVal = vars.color_on;
+        const colorOnText = asString(colorOnVal, '');
+        if (colorOnText.startsWith('0x') || colorOnText.startsWith('0X')) {
+          btn.color = colorOnText.replace(/^0x/i, '').toUpperCase();
+        } else if (typeof colorOnVal === 'number') {
+          btn.color = Math.max(0, Math.min(0xFFFFFF, colorOnVal)).toString(16).toUpperCase().padStart(6, '0');
+        }
+
+        const colorOffVal = vars.color_off;
+        const colorOffText = asString(colorOffVal, '');
+        if (colorOffText.startsWith('0x') || colorOffText.startsWith('0X')) {
+          btn.colorOff = colorOffText.replace(/^0x/i, '').toUpperCase();
+        } else if (typeof colorOffVal === 'number') {
+          btn.colorOff = Math.max(0, Math.min(0xFFFFFF, colorOffVal)).toString(16).toUpperCase().padStart(6, '0');
         }
 
         if (includeFile.includes('cyd_button_widget_checkable')) {
@@ -597,7 +617,6 @@ function parseSyncPackages(raw, buttons) {
       if (idx >= 0 && buttons[idx]) {
         buttons[idx].type = 'timer_sync';
         buttons[idx].haEntity = entityId;
-        buttons[idx].timerDefaultLabel = asString(vars.default_label || '');
       }
     } else if (key.startsWith('btn_number_')) {
       // number_sync
@@ -769,14 +788,15 @@ export function importFromYAML(yamlText) {
         if (metaButton?.empty !== undefined) {
           config.buttons[i].empty = metaButton.empty;
         }
-        if (metaButton?.timerDefaultLabel && !config.buttons[i].timerDefaultLabel) {
-          config.buttons[i].timerDefaultLabel = metaButton.timerDefaultLabel;
-        }
         if (metaButton?.threshold != null && config.buttons[i].threshold == null) {
           config.buttons[i].threshold = Number(metaButton.threshold);
         }
         if (metaButton?.condition && !config.buttons[i].condition) {
           config.buttons[i].condition = metaButton.condition;
+        }
+        if (metaButton?.customColors) {
+          config.buttons[i].customColors = true;
+          if (metaButton.colorOff) config.buttons[i].colorOff = metaButton.colorOff;
         }
       }
     }

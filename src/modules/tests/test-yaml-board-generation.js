@@ -109,8 +109,8 @@ describe('Board: esp32-2432s028-2port (320×240, RGB LED)', () => {
     assert.ok(yaml.includes('platform: xpt2046'), 'Missing platform: xpt2046');
   });
 
-  it('contains platform: ili9xxx', () => {
-    assert.ok(yaml.includes('platform: ili9xxx'), 'Missing platform: ili9xxx');
+  it('contains platform: mipi_spi', () => {
+    assert.ok(yaml.includes('platform: mipi_spi'), 'Missing platform: mipi_spi');
   });
 });
 
@@ -161,10 +161,10 @@ describe('Board: esp32-3248s035c (480×320, shared SPI, RGB)', () => {
     assert.ok(yaml.includes('height: "320"'), `Expected height: "320"`);
   });
 
-  it('contains st7796 or color_order BGR marker (display driver)', () => {
-    const hasSt7796 = yaml.includes('st7796');
+  it('contains ST7796 model or color_order BGR marker (display driver)', () => {
+    const hasST7796 = yaml.includes('ST7796');
     const hasBGR = yaml.includes('BGR');
-    assert.ok(hasSt7796 || hasBGR, `Expected st7796 or BGR marker for this board`);
+    assert.ok(hasST7796 || hasBGR, `Expected ST7796 model or BGR marker for this board`);
   });
 
   it('contains RGB LED (output_red)', () => {
@@ -316,7 +316,7 @@ describe('Board: guition-jc4827543c (480×272, ESP32-S3, ESP-IDF, NO RGB)', () =
   it('does NOT route by feature-sniffing (no false positive for qspi on CYD boards)', () => {
     const cydYaml = generateForBoard('esp32-2432s028-2port');
     assert.ok(!cydYaml.includes('platform: qspi_dbi'), 'CYD boards must not emit qspi_dbi');
-    assert.ok(cydYaml.includes('platform: ili9xxx'), 'CYD boards should use ili9xxx');
+    assert.ok(cydYaml.includes('platform: mipi_spi'), 'CYD boards should use mipi_spi');
   });
 
   it('does NOT emit led_sync packages even when led.enabled = true (no RGB hardware)', () => {

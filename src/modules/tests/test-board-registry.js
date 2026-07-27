@@ -60,9 +60,8 @@ describe('BOARD_CONFIGS', () => {
 
   it('esp32-2432s028-2port has correct display config', () => {
     const b = BOARD_CONFIGS['esp32-2432s028-2port'];
-    assert.strictEqual(b.hardware.display.driver, 'ili9xxx');
-    assert.strictEqual(b.hardware.display.model, 'TFT 2.4R');
-    assert.strictEqual(b.hardware.display.color_palette, '8BIT');
+    assert.strictEqual(b.hardware.display.driver, 'mipi_spi');
+    assert.strictEqual(b.hardware.display.model, 'ILI9341');
     assert.strictEqual(b.hardware.transform, undefined);
     assert.strictEqual(b.hardware.display.transform.swap_xy, true);
     assert.strictEqual(b.hardware.display.cs_pin.number, 15);
@@ -92,12 +91,12 @@ describe('BOARD_CONFIGS', () => {
     const b = BOARD_CONFIGS['esp32-e32r28t'];
     assert.strictEqual(b.capabilities.rgbLed, false);
     assert.strictEqual(b.hardware.rgbLed, undefined);
-    assert.strictEqual(b.hardware.display.driver, 'ili9341');
+    assert.strictEqual(b.hardware.display.driver, 'mipi_spi');
   });
 
   it('esp32-3248s035c has st7796 display and rgbLed', () => {
     const b = BOARD_CONFIGS['esp32-3248s035c'];
-    assert.strictEqual(b.hardware.display.driver, 'st7796');
+    assert.strictEqual(b.hardware.display.driver, 'mipi_spi');
     assert.strictEqual(b.hardware.display.color_order, 'BGR');
     assert.strictEqual(b.capabilities.rgbLed, true);
     assert.ok(b.hardware.rgbLed);
@@ -106,7 +105,7 @@ describe('BOARD_CONFIGS', () => {
 
   it('esp32-e32r35t has st7796 display and rgbLed', () => {
     const b = BOARD_CONFIGS['esp32-e32r35t'];
-    assert.strictEqual(b.hardware.display.driver, 'st7796');
+    assert.strictEqual(b.hardware.display.driver, 'mipi_spi');
     assert.strictEqual(b.hardware.display.color_order, 'BGR');
     assert.strictEqual(b.capabilities.rgbLed, true);
     assert.ok(b.hardware.rgbLed);
@@ -115,7 +114,7 @@ describe('BOARD_CONFIGS', () => {
 
   it('esp32-e32r40t has st7796 display and rgbLed', () => {
     const b = BOARD_CONFIGS['esp32-e32r40t'];
-    assert.strictEqual(b.hardware.display.driver, 'st7796');
+    assert.strictEqual(b.hardware.display.driver, 'mipi_spi');
     assert.strictEqual(b.hardware.display.color_order, 'BGR');
     assert.strictEqual(b.capabilities.rgbLed, true);
     assert.ok(b.hardware.rgbLed);

@@ -8,9 +8,10 @@ button:
   bg_color: default_button_bg_color
   pressed:
     bg_color: default_button_pressed_bg_color
+  text_color: ${color_off}
   checkable: false
   checked:
-    text_color: "${color}"
+    text_color: "${color_on}"
   widgets:
     - label:
         id: lbl_${id}
@@ -20,7 +21,10 @@ button:
         y: ${icon_y | default("-8")}
     - label:
         id: lbl_text_${id}
+        width: 90%
+        long_mode: WRAP
         text_font: ${font | default("roboto_12")}
         text: "${label}"
         align: center
+        text_align: CENTER
         y: ${label_y| default("20")}

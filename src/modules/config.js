@@ -14,13 +14,12 @@ export const BOARD_CONFIGS = {
     hardware: {
       esp32: { board: 'esp32dev', framework: 'arduino' },
       display: {
-        driver: 'ili9xxx',
-        model: 'TFT 2.4R',
+        driver: 'mipi_spi',
+        model: 'ILI9341',
         spi_id: 'tft',
         cs_pin: { number: 15, ignore_strapping_warning: true },
         dc_pin: { number: 2, ignore_strapping_warning: true },
         invert_colors: false,
-        color_palette: '8BIT',
         transform: { swap_xy: true }
       },
       touch: {
@@ -47,12 +46,12 @@ export const BOARD_CONFIGS = {
     hardware: {
       esp32: { board: 'esp32dev', framework: 'arduino' },
       display: {
-        driver: 'ili9341',
+        driver: 'mipi_spi',
+        model: 'ILI9341',
         spi_id: 'tft',
         cs_pin: { number: 15, ignore_strapping_warning: true },
         dc_pin: { number: 2, ignore_strapping_warning: true },
         invert_colors: false,
-        color_palette: '8BIT',
         transform: { swap_xy: true }
       },
       touch: {
@@ -78,13 +77,13 @@ export const BOARD_CONFIGS = {
     hardware: {
       esp32: { board: 'esp32dev', framework: 'arduino' },
       display: {
-        driver: 'st7796',
+        driver: 'mipi_spi',
+        model: 'ST7796',
         color_order: 'BGR',
         spi_id: 'tft',
         cs_pin: { number: 15, ignore_strapping_warning: true },
         dc_pin: { number: 2, ignore_strapping_warning: true },
         invert_colors: false,
-        color_palette: '8BIT',
         transform: { swap_xy: true }
       },
       touch: {
@@ -111,13 +110,13 @@ export const BOARD_CONFIGS = {
     hardware: {
       esp32: { board: 'esp32dev', framework: 'arduino' },
       display: {
-        driver: 'st7796',
+        driver: 'mipi_spi',
+        model: 'ST7796',
         color_order: 'BGR',
         spi_id: 'tft',
         cs_pin: { number: 15, ignore_strapping_warning: true },
         dc_pin: { number: 2, ignore_strapping_warning: true },
         invert_colors: false,
-        color_palette: '8BIT',
         transform: { swap_xy: true }
       },
       touch: {
@@ -144,13 +143,13 @@ export const BOARD_CONFIGS = {
     hardware: {
       esp32: { board: 'esp32dev', framework: 'arduino' },
       display: {
-        driver: 'st7796',
+        driver: 'mipi_spi',
+        model: 'ST7796',
         color_order: 'BGR',
         spi_id: 'tft',
         cs_pin: { number: 15, ignore_strapping_warning: true },
         dc_pin: { number: 2, ignore_strapping_warning: true },
         invert_colors: false,
-        color_palette: '8BIT',
         transform: { swap_xy: true }
       },
       touch: {
@@ -345,11 +344,12 @@ export const DEFAULT_BUTTON = {
   icon: '\\U000F0594',
   haEntity: null,
   onState: 'on',
-  timerDefaultLabel: '',
   threshold: null,
   condition: 'above',
   iconOn: null,
   iconOff: null,
+  customColors: false,
+  colorOff: '808080',
   shortPress: {
     enabled: false,
     actionType: '',
@@ -593,6 +593,20 @@ export const ACTION_SCHEMAS = {
       return d;
     }
   },
+  // Timer - HA helper entity for countdown timers
+  timer: {
+    fields: [
+      { name: 'entityId', label: 'Timer Entity ID', type: 'text', placeholder: 'e.g. timer.laundry' },
+      { name: 'operation', label: 'Operation', type: 'select', options: ['start', 'pause', 'cancel', 'change', 'finish'] },
+      { name: 'duration', label: 'Duration (HH:MM:SS)', type: 'text', placeholder: 'e.g. 00:05:00', conditional: (d) => d.operation === 'start' || d.operation === 'change' }
+    ],
+    ha_action: (data) => `timer.${data.operation || 'start'}`,
+    ha_data: (data) => {
+      const d = { entity_id: data.entityId || '' };
+      if ((data.operation === 'start' || data.operation === 'change') && data.duration) d.duration = String(data.duration);
+      return d;
+    }
+  },
   // Button entity - entity_id only (HA helper, not a physical device)
   button: {
     fields: [
@@ -629,7 +643,7 @@ export const PRESETS = {
       { ...DEFAULT_BUTTON, id: 'btn_3', name: 'Button 3', label: "I'm wake", col: 2, row: 0, icon: '\\U000F059C', color: 'FFFF00', type: 'checkable', haEntity: 'switch.virtual_is_wake', onState: 'on', iconOn: '\\U000F059C', iconOff: '\\U000F0594' },
       { ...DEFAULT_BUTTON, id: 'btn_4', name: 'Button 4', label: 'Play/Pause', col: 3, row: 0, icon: '\\U000F040E', color: '00FF00', type: 'checkable', haEntity: 'media_player.spotify', onState: 'playing', iconOn: '\\U000F040A', iconOff: '\\U000F03E4' },
       { ...DEFAULT_BUTTON, id: 'btn_5', name: 'Button 5', label: 'Garden', col: 0, row: 1, icon: '\\U000F032A', color: 'FF1493', type: 'stateless', shortPress: { enabled: true, actionType: 'switch', action: '', data: { entityId: 'switch.garden_light', operation: 'toggle' } } },
-      { ...DEFAULT_BUTTON, id: 'btn_6', name: 'Button 6', label: 'Studio Garden', col: 1, row: 1, icon: '\\U000F024A', color: '800080', type: 'checkable', haEntity: 'timer.studio_balcony_plant_light_timer', timerDefaultLabel: 'Studio Garden', shortPress: { enabled: true, actionType: 'script', action: 'script.watch_studio_plant', data: { action: 'script.watch_studio_plant' } } },
+      { ...DEFAULT_BUTTON, id: 'btn_6', name: 'Button 6', label: 'Studio Garden', col: 1, row: 1, icon: '\\U000F024A', color: '800080', type: 'checkable', haEntity: 'timer.studio_balcony_plant_light_timer', shortPress: { enabled: true, actionType: 'script', action: 'script.watch_studio_plant', data: { action: 'script.watch_studio_plant' } } },
       { ...DEFAULT_BUTTON, id: 'btn_7', name: 'Button 7', label: 'Curtain 30%', col: 2, row: 1, icon: '\\U000F1846', color: '0000FF', type: 'stateless', shortPress: { enabled: true, actionType: 'cover', action: '', data: { entityId: 'cover.main_curtain', operation: 'set_cover_position', position: 30 } } },
       { ...DEFAULT_BUTTON, id: 'btn_8', name: 'Button 8', label: 'Curtain', col: 3, row: 1, icon: '\\U000F1847', color: '00FFFF', type: 'checkable', haEntity: 'cover.main_curtain', onState: 'open', iconOn: '\\U000F1846', iconOff: '\\U000F1847' },
       { ...DEFAULT_BUTTON, id: 'btn_9', name: 'Button 9', label: 'Pill', col: 0, row: 2, icon: '\\U000F0402', color: '00FF00', type: 'checkable', haEntity: 'switch.pill_alert', onState: 'on', iconOn: '\\U000F0402', iconOff: '\\U000F1A5C' },
@@ -650,7 +664,7 @@ export const PRESETS = {
       { ...DEFAULT_BUTTON, id: 'btn_3', name: 'Button 3', label: "I'm wake", col: 2, row: 0, icon: '\\U000F059C', color: 'FFFF00', type: 'checkable', haEntity: 'switch.virtual_is_wake', onState: 'on', iconOn: '\\U000F059C', iconOff: '\\U000F0594', longPress: { enabled: true, minLength: '1000ms', maxLength: '5000ms', actionType: 'automation', action: '', data: { entityId: 'automation.i_m_wake' } } },
       { ...DEFAULT_BUTTON, id: 'btn_4', name: 'Button 4', label: 'Play/Pause', col: 3, row: 0, icon: '\\U000F040E', color: '00FF00', type: 'checkable', haEntity: 'media_player.spotify_mememe', onState: 'playing', iconOn: '\\U000F040A', iconOff: '\\U000F03E4', shortPress: { enabled: true, actionType: 'media_player', action: '', data: { targetType: 'device_id', deviceId: '31e23566034de0e54e242c1dc7c49534', operation: 'media_play_pause' } }, longPress: { enabled: true, minLength: '500ms', maxLength: '5000ms', actionType: 'media_player', action: '', data: { targetType: 'device_id', deviceId: '31e23566034de0e54e242c1dc7c49534', operation: 'media_next_track' } } },
       { ...DEFAULT_BUTTON, id: 'btn_5', name: 'Button 5', label: 'Back Garden', col: 0, row: 1, icon: '\\U000F032A', color: 'FF1493', type: 'stateless', shortPress: { enabled: true, actionType: 'switch', action: '', data: { entityId: 'switch.0xa4c138eaeaa49145_l1', operation: 'toggle' } } },
-      { ...DEFAULT_BUTTON, id: 'btn_6', name: 'Button 6', label: 'Studio Garden', col: 1, row: 1, icon: '\\U000F024A', color: '800080', type: 'timer_sync', haEntity: 'timer.studio_balcony_plant_light_timer', timerDefaultLabel: 'Studio Garden', shortPress: { enabled: true, actionType: 'script', action: 'script.watch_a_studio_plant', data: { action: 'script.watch_a_studio_plant' } } },
+      { ...DEFAULT_BUTTON, id: 'btn_6', name: 'Button 6', label: 'Studio Garden', col: 1, row: 1, icon: '\\U000F024A', color: '800080', type: 'timer_sync', haEntity: 'timer.studio_balcony_plant_light_timer', shortPress: { enabled: true, actionType: 'script', action: 'script.watch_a_studio_plant', data: { action: 'script.watch_a_studio_plant' } } },
       { ...DEFAULT_BUTTON, id: 'btn_7', name: 'Button 7', label: 'Curtain 30%', col: 2, row: 1, icon: '\\U000F1846', color: '0000FF', type: 'stateless', shortPress: { enabled: true, actionType: 'cover', action: '', data: { deviceId: '1fa4679165a72e406c63bec6b74b7c63', operation: 'set_cover_position', position: 30 } } },
       { ...DEFAULT_BUTTON, id: 'btn_8', name: 'Button 8', label: 'Curtain', col: 3, row: 1, icon: '\\U000F1847', color: '00FFFF', type: 'checkable', haEntity: 'cover.sonoff_1000faa95f', onState: 'opening', iconOn: '\\U000F1846', iconOff: '\\U000F1847', shortPress: { enabled: true, actionType: 'cover', action: '', data: { entityId: 'cover.sonoff_1000faa95f', operation: 'open_cover' } }, longPress: { enabled: true, minLength: '500ms', maxLength: '10000ms', actionType: 'cover', action: '', data: { entityId: 'cover.sonoff_1000faa95f', operation: 'close_cover' } } },
       { ...DEFAULT_BUTTON, id: 'btn_9', name: 'Button 9', label: 'Pill alert', col: 0, row: 2, icon: '\\U000F0402', color: '00FF00', type: 'checkable', haEntity: 'switch.virtual_pill_alert', onState: 'on', iconOn: '\\U000F0402', iconOff: '\\U000F1A5C', shortPress: { enabled: true, actionType: 'switch', action: '', data: { entityId: 'switch.virtual_pill_alert', operation: 'turn_off' } } },
@@ -760,8 +774,8 @@ light:
 
 display:
   - id: main_display
-    platform: ili9xxx
-    model: TFT 2.4R
+    platform: mipi_spi
+    model: ILI9341
     spi_id: tft
     cs_pin:
       number: 15
@@ -770,11 +784,12 @@ display:
       number: 2
       ignore_strapping_warning: true
     invert_colors: false
-    color_palette: 8BIT
     update_interval: never
     auto_clear_enabled: false
     transform:
       swap_xy: true
+      mirror_x: false
+      mirror_y: false
     dimensions:
       width: \${width}
       height: \${height}

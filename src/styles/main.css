@@ -406,10 +406,11 @@ h2 {
 
 .grid-cell .label {
   font-size: 0.5rem;
+  line-height: 1.15;
   text-align: center;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
   max-width: 100%;
 }
 
@@ -557,6 +558,12 @@ textarea.form-control {
   resize: vertical;
   font-family: 'Monaco', 'Menlo', monospace;
   font-size: 0.8125rem;
+}
+
+#btn-label {
+  min-height: 56px;
+  font-family: inherit;
+  font-size: 0.875rem;
 }
 
 .form-row {
@@ -1896,4 +1903,3 @@ Utilities
 .skip-link:focus {
   top: 0;
 }
-

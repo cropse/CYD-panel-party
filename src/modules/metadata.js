@@ -33,10 +33,11 @@ export function encodeMetadata(normalizedConfig) {
       id: btn.id,
       name: btn.name,
       empty: btn.empty || undefined,
-      timerDefaultLabel: btn.timerDefaultLabel || undefined,
       threshold: btn.threshold != null ? String(btn.threshold) : undefined,
-      condition: btn.condition && btn.condition !== 'above' ? btn.condition : undefined
-    })).filter(b => b.name !== `Button ${b.id?.replace('btn_', '')}` || b.empty || b.timerDefaultLabel || b.threshold || b.condition)
+      condition: btn.condition && btn.condition !== 'above' ? btn.condition : undefined,
+      customColors: btn.customColors || undefined,
+      colorOff: btn.customColors && btn.colorOff && btn.colorOff !== '808080' ? btn.colorOff : undefined
+    })).filter(b => b.name !== `Button ${b.id?.replace('btn_', '')}` || b.empty || b.threshold || b.condition || b.customColors)
   };
 
   const payload = {

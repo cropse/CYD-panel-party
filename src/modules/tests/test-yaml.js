@@ -259,11 +259,11 @@ describe('generatePackages', () => {
     assert.ok(out.includes('lvgl_sync_template') || out.includes('btn_1'));
   });
 
-  it('timer_sync button generates timer template', () => {
-    const config = { ...baseConfig, buttons: [{ type: 'timer_sync', haEntity: 'timer.test', id: 'btn_1', label: 'Timer', timerDefaultLabel: 'My Timer' }] };
+  it('timer_sync button uses the button label while inactive', () => {
+    const config = { ...baseConfig, buttons: [{ type: 'timer_sync', haEntity: 'timer.test', id: 'btn_1', label: 'Garden Timer', icon: '\\U000F0001' }] };
     const out = render(generatePackages(config, { ...sectionDeps, config }));
-    assert.ok(out.includes('btn_timer_1') || out.includes('btn_1'));
-    assert.ok(out.includes('timer_sync_template') || out.includes('timer') || out.includes('packages:'));
+    assert.ok(out.includes('btn_timer_1'));
+    assert.ok(out.includes('default_label: "Garden Timer"'));
   });
 
   it('number_sync button generates number sync package', () => {
@@ -312,7 +312,7 @@ describe('generatePackages', () => {
     assert.ok(out.includes('switch.garden_lights'), 'should pass switch.garden_lights as ha_entity');
   });
 
-  it('number_sync does not require onState or timerDefaultLabel', () => {
+  it('number_sync does not require onState', () => {
     const config = { ...baseConfig, buttons: [numberSyncFixtures.noOptionalFields] };
     const out = render(generatePackages(config, { ...sectionDeps, config }));
     assert.ok(out.includes('btn_number_1'), 'should generate package without optional fields');
@@ -468,6 +468,15 @@ describe('generateLVGLWidgets', () => {
     }];
     const out = render(generateLVGLWidgets(btns, sectionDeps));
     assert.ok(out.includes('cyd_button_widget.yaml'));
+  });
+
+  it('button labels use centered wrapping', () => {
+    const btns = [{
+      type: 'stateless', id: 'btn_1', col: 0, row: 0, icon: '\\U000F0335', label: 'Garden\nTimer', color: 'FF0000',
+      shortPress: { enabled: true }, longPress: { enabled: false }
+    }];
+    const out = render(generateLVGLWidgets(btns, sectionDeps));
+    assert.ok(out.includes('label: "Garden\\nTimer"'));
   });
 
   it('number_sync button uses checkable widget template', () => {

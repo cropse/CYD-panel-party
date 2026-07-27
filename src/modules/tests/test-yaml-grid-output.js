@@ -249,7 +249,7 @@ describe('generateHardwareConfig rotate180 transform', () => {
     const touchTransform = extractTransformKeys(out, 'touchscreen:');
     assert.ok(displayTransform, 'display section should exist');
     assert.strictEqual(displayTransform.swap_xy, true);
-    assert.strictEqual(displayTransform.mirror_x, undefined, 'display should not have mirror_x key');
+    assert.strictEqual(displayTransform.mirror_x, false, 'display has mirror_x false (mipi_spi requires all three transform keys)');
     assert.ok(touchTransform, 'touch section should exist');
     assert.strictEqual(touchTransform.swap_xy, true);
     assert.strictEqual(touchTransform.mirror_x, undefined, 'touch should not have mirror_x key');
@@ -282,7 +282,7 @@ describe('generateHardwareConfig rotate180 transform', () => {
     const displayTransform = extractTransformKeys(out, 'display:');
     const touchTransform = extractTransformKeys(out, 'touchscreen:');
     assert.strictEqual(displayTransform.swap_xy, true);
-    assert.strictEqual(displayTransform.mirror_x, undefined, 'display should not have mirror_x key');
+    assert.strictEqual(displayTransform.mirror_x, false, 'display has mirror_x false (mipi_spi requires all three transform keys)');
     assert.strictEqual(touchTransform.swap_xy, true);
     assert.strictEqual(touchTransform.mirror_x, true, '480×320 board already has mirror_x true, should stay true when not flipped');
   });
@@ -431,7 +431,7 @@ describe('generateFullYAML grid and flip integration', () => {
     const imported = importFromYAML(yaml).config;
     const displayTransform = extractTransformKeys(yaml, 'display:');
     const touchTransform = extractTransformKeys(yaml, 'touchscreen:');
-    assert.strictEqual(displayTransform.mirror_x, undefined);
+    assert.strictEqual(displayTransform.mirror_x, false);
     assert.strictEqual(displayTransform.mirror_y, true);
     assert.strictEqual(touchTransform.mirror_x, undefined);
     assert.strictEqual(touchTransform.mirror_y, true);

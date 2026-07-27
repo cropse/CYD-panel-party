@@ -158,12 +158,12 @@ export function validateConfig(config, deps = {}) {
       }
     }
 
-    ['label', 'haEntity', 'onState', 'timerDefaultLabel'].forEach(key => {
+    ['label', 'haEntity', 'onState'].forEach(key => {
       if (looksLikeSecret(btn[key], key)) {
         const path = `buttons.${i}.${key}`;
         issues.warnings.push({
           message: `Button ${slotOf(btn)} ${key} looks like a credential. Use !secret ${secretNameFromContext(path)} instead.`,
-          selector: i === selectedButtonIndex ? (key === 'label' ? '#btn-label' : key === 'haEntity' ? '#ha-entity' : key === 'timerDefaultLabel' ? '#timer-default-label' : '#on-state') : null,
+          selector: i === selectedButtonIndex ? (key === 'label' ? '#btn-label' : key === 'haEntity' ? '#ha-entity' : '#on-state') : null,
           secretPath: path,
           secretRef: `!secret ${secretNameFromContext(path)}`
         });

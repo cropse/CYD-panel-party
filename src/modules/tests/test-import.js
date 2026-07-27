@@ -263,14 +263,14 @@ describe('normalizeImportedConfig - button-level', () => {
     assert.strictEqual(config.buttons[0].type, 'number_sync');
   });
 
-  it('number_sync does not require timerDefaultLabel on import', () => {
+  it('drops legacy timerDefaultLabel on import', () => {
     const { config } = normalizeImportedConfig({ buttons: [
-      { ...baseBtn, type: 'number_sync', haEntity: 'sensor.gecko_sensor_humidity', threshold: 50, condition: 'above', iconOn: '\\U000F0001', iconOff: '\\U000F0002', timerDefaultLabel: undefined },
+      { ...baseBtn, type: 'timer_sync', haEntity: 'timer.garden', timerDefaultLabel: 'Legacy Label' },
       ...Array(11).fill(baseBtn)
     ]});
-    assert.strictEqual(config.buttons[0].type, 'number_sync');
-    assert.strictEqual(config.buttons[0].haEntity, 'sensor.gecko_sensor_humidity');
-    assert.strictEqual(config.buttons[0].timerDefaultLabel, '');
+    assert.strictEqual(config.buttons[0].type, 'timer_sync');
+    assert.strictEqual(config.buttons[0].haEntity, 'timer.garden');
+    assert.strictEqual('timerDefaultLabel' in config.buttons[0], false);
   });
 });
 

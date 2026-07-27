@@ -60,15 +60,12 @@ describe('encodeMetadata / decodeMetadata', () => {
   it('round-trips button gap-fill fields', () => {
     const preset = PRESETS['back-garden']();
     preset.buttons[0].name = 'Kitchen Scene Button';
-    preset.buttons[5].timerDefaultLabel = 'Water Plants';
     const { config: normalized } = normalizeImportedConfig(preset);
     const encoded = encodeMetadata(normalized);
     const result = decodeMetadata(encoded);
     assert.ok(result);
     const first = result.gapFill.buttons.find(b => b.id === 'btn_1');
-    const timer = result.gapFill.buttons.find(b => b.id === 'btn_6');
     assert.strictEqual(first.name, 'Kitchen Scene Button');
-    assert.strictEqual(timer.timerDefaultLabel, 'Water Plants');
   });
 
   it('returns null for YAML without metadata', () => {

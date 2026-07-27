@@ -461,8 +461,8 @@ light:
 
 display:
   - id: main_display
-    platform: ili9xxx
-    model:  TFT 2.4R    # original used to be LI9341
+    platform: mipi_spi
+    model: ILI9341
     spi_id: tft
     cs_pin:
       number: 15
@@ -471,12 +471,12 @@ display:
       number:  2
       ignore_strapping_warning: true
     invert_colors: false   # original used to be false
-    color_palette: 8BIT   # added this line
     update_interval: never
     auto_clear_enabled: false
     transform:            # added this line
       swap_xy: true
-      # mirror_x: true
+      mirror_x: false
+      mirror_y: false
     dimensions:
       width: ${width}
       height: ${height}

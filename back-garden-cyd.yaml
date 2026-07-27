@@ -87,8 +87,8 @@ light:
 
 display:
   - id: main_display
-    platform: ili9xxx
-    model: TFT 2.4R
+    platform: mipi_spi
+    model: ILI9341
     spi_id: tft
     cs_pin:
       number: 15
@@ -97,11 +97,12 @@ display:
       number: 2
       ignore_strapping_warning: true
     invert_colors: false
-    color_palette: 8BIT
     update_interval: never
     auto_clear_enabled: false
     transform:
       swap_xy: true
+      mirror_x: false
+      mirror_y: false
     dimensions:
       width: ${width}
       height: ${height}
@@ -426,6 +427,9 @@ packages:
       ha_entity: timer.studio_balcony_plant_light_timer
       btn_id: btn_6
       default_label: "Studio Garden"
+      ico_on: "\U000F024A"
+      ico_off: "\U000F024A"
+      ico_alert: "\U000F0026"
   btn_logic_8: !include
     file: cyd-lib/templates/lvgl_sync_template.yaml
     vars:
@@ -564,7 +568,8 @@ lvgl:
                      id: btn_3
                      col: 2
                      row: 0
-                     color: 0xFFFF00
+                     color_on: 0xFFFF00
+                     color_off: 0x808080
                      icon: "\U000F059C"
                      label: "I'm wake"
               - <<: !include
@@ -618,7 +623,8 @@ lvgl:
                      id: btn_9
                      col: 0
                      row: 2
-                     color: 0x00FF00
+                     color_on: 0x00FF00
+                     color_off: 0x808080
                      icon: "\U000F0402"
                      label: "Pill alert"
               - <<: !include
@@ -627,7 +633,8 @@ lvgl:
                      id: btn_10
                      col: 1
                      row: 2
-                     color: 0xFFFF00
+                     color_on: 0xFFFF00
+                     color_off: 0x808080
                      icon: "\U000F17C9"
                      font: roboto_16
                      label: "Studio"
@@ -637,7 +644,8 @@ lvgl:
                      id: btn_11
                      col: 2
                      row: 2
-                     color: 0x00BFFF
+                     color_on: 0x00BFFF
+                     color_off: 0x808080
                      icon: "\U000F1503"
                      label: "Living"
               - <<: !include
@@ -646,6 +654,7 @@ lvgl:
                      id: btn_12
                      col: 3
                      row: 2
-                     color: 0xFB852B
+                     color_on: 0xFB852B
+                     color_off: 0x808080
                      icon: "\U000F1915"
                      label: "Eat"

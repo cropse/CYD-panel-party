@@ -491,7 +491,9 @@ function setupButtonEditor() {
       const hasCheckableIcons = type === 'checkable' || type === 'timer_sync' || type === 'number_sync';
       document.getElementById('checkable-options').classList.toggle('hidden', !hasHomeAssistantEntity);
       document.getElementById('checkable-icons').classList.toggle('hidden', !hasCheckableIcons);
-      document.getElementById('timer-default-label-group')?.classList.toggle('hidden', type !== 'timer_sync');
+      document.getElementById('custom-colors-group')?.classList.toggle('hidden', !hasCheckableIcons);
+      document.getElementById('custom-off-color-group')?.classList.toggle('hidden', true);
+
       document.getElementById('on-state-group')?.classList.toggle('hidden', type !== 'checkable');
       document.getElementById('number-sync-threshold-group')?.classList.toggle('hidden', type !== 'number_sync');
       document.getElementById('number-sync-condition-group')?.classList.toggle('hidden', type !== 'number_sync');
@@ -504,10 +506,6 @@ function setupButtonEditor() {
 
   document.getElementById('on-state')?.addEventListener('input', (e) => {
     store.button('onState', e.target.value);
-  });
-
-  document.getElementById('timer-default-label')?.addEventListener('input', (e) => {
-    store.button('timerDefaultLabel', e.target.value);
   });
 
   document.getElementById('number-threshold')?.addEventListener('input', (e) => {
@@ -524,6 +522,30 @@ function setupButtonEditor() {
       btn.setAttribute('aria-checked', 'true');
       store.button('condition', btn.dataset.condition);
     });
+  });
+
+  document.getElementById('custom-colors-toggle')?.addEventListener('change', (e) => {
+    store.button('customColors', e.target.checked);
+    document.getElementById('custom-off-color-group')?.classList.toggle('hidden', !e.target.checked);
+    const colorLabel = document.getElementById('color-label');
+    if (colorLabel) colorLabel.textContent = e.target.checked ? 'Color On' : 'Color';
+  });
+
+  document.getElementById('color-off-native')?.addEventListener('input', (e) => {
+    const hex = e.target.value.replace('#', '').toUpperCase();
+    store.button('colorOff', hex);
+    const hexInput = document.getElementById('color-off-hex');
+    if (hexInput) hexInput.value = hex;
+  });
+
+  document.getElementById('color-off-hex')?.addEventListener('input', (e) => {
+    let hex = e.target.value.replace(/^#/, '').toUpperCase();
+    e.target.value = hex;
+    if (/^[0-9A-F]{6}$/.test(hex)) {
+      store.button('colorOff', hex);
+      const native = document.getElementById('color-off-native');
+      if (native) native.value = `#${hex}`;
+    }
   });
 }
 

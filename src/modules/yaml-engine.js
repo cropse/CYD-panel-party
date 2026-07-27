@@ -247,7 +247,11 @@ function generateCydHardwareConfig(boardConfig, config, deps) {
   const rotate = Boolean(config?.rotate180);
   const portraitTransform = rotate ? { mirror_y: true } : {};
   const portraitTouchTransform = rotate ? { mirror_y: true } : { mirror_x: true };
-  const displayTransformObj = config?.vertical ? portraitTransform : (rotate ? composeTransform(display.transform, true) : (display.transform || {}));
+  const rawDisplayTransform = config?.vertical ? portraitTransform : (rotate ? composeTransform(display.transform, true) : (display.transform || {}));
+  // mipi_spi requires all three transform keys when transform is present
+  const displayTransformObj = Object.keys(rawDisplayTransform).length > 0
+    ? { swap_xy: false, mirror_x: false, mirror_y: false, ...rawDisplayTransform }
+    : {};
   const touchTransformObj = config?.vertical ? portraitTouchTransform : (rotate ? composeTransform(touch.transform, true) : (touch.transform || {}));
   const displayTransform = Object.entries(displayTransformObj).map(([key, value]) => `      ${key}: ${value}`).join('\n');
   const touchTransform = Object.entries(touchTransformObj).map(([key, value]) => `      ${key}: ${value}`).join('\n');
@@ -304,7 +308,6 @@ ${pinBlock(display.cs_pin, 6)}
     dc_pin:
 ${pinBlock(display.dc_pin, 6)}
     invert_colors: ${display.invert_colors}
-    color_palette: ${display.color_palette}
     update_interval: never
     auto_clear_enabled: false${displayTransformBlock}
     dimensions:
@@ -504,10 +507,16 @@ export function generateNumberSection(config, deps) {
 export function generateBinarySensors(buttons, deps) {
   const { actionSchemas, yamlScalar } = deps;
   const sensors = [];
+  const seenNames = new Map();
 
   buttons.forEach((btn, i) => {
     if (btn.empty) return;
     if (!btn.shortPress?.enabled && !btn.longPress?.enabled && btn.type !== 'checkable') return;
+
+    let sensorName = btn.name || `Button ${i + 1}`;
+    const count = seenNames.get(sensorName) || 0;
+    seenNames.set(sensorName, count + 1);
+    if (count > 0) sensorName = `${sensorName} ${btn.id.replace('btn_', '#')}`;
 
     const clicks = [];
 
@@ -548,7 +557,7 @@ export function generateBinarySensors(buttons, deps) {
     if (clicks.length > 0) {
       sensors.push(`  - platform: lvgl
     widget: ${btn.id}
-    name: "${btn.name}"
+    name: "${sensorName}"
     id: ${btn.id}_pressed
     on_click:
 ${clicks.join('\n')}`);
@@ -575,14 +584,19 @@ export function generatePackages(buttons, deps) {
     const escapedState = String(btn.onState || 'on').replace(/"/g, '\\"');
 
     if (btn.type === 'timer_sync') {
-      const timerLabel = (btn.timerDefaultLabel || btn.label || '').replace(/"/g, '\\"');
+      const timerLabel = (btn.label || '').replace(/"/g, '\\"');
+      const iconOn = btn.iconOn || btn.icon;
+      const iconOff = btn.iconOff || btn.icon;
       packages.push(`  btn_timer_${i + 1}: !include
     file: cyd-lib/templates/timer_sync_template.yaml
     vars:
       ts_id: ts_${btn.id}_timer
       ha_entity: ${yamlScalar(btn.haEntity)}
       btn_id: ${btn.id}
-      default_label: ${yamlQuoted(timerLabel)}`);
+      default_label: ${yamlQuoted(timerLabel)}
+      ico_on: "${iconOn}"
+      ico_off: "${iconOff}"
+      ico_alert: "${ALERT_GLYPH}"`);
     } else if (btn.type === 'number_sync') {
       const label = (btn.label || '').replace(/"/g, '\\"');
       const iconOn = btn.iconOn || btn.icon;
@@ -688,20 +702,28 @@ export function generateLVGLWidgets(buttons, deps) {
     if (btn.empty || btn.col >= logicalColumns || btn.row >= logicalRows) return;
     const position = logicalToYamlGrid(btn.col, btn.row, logicalColumns, logicalRows, deps.config?.vertical, deps.config?.rotate180);
     const isCheckable = btn.type === 'checkable' || btn.type === 'number_sync';
-    const hasTimerDefaultLabel = isCheckable && btn.timerDefaultLabel && String(btn.timerDefaultLabel).trim();
+    const isTimerSync = btn.type === 'timer_sync';
     const colorRef = `btn_${buttons.indexOf(btn) + 1}_color`;
+
+    // ponytail: customColors enables separate on/off text colors via the checkable widget template
+    const useCustomColors = Boolean(btn.customColors) && (isCheckable || isTimerSync);
+    const colorOff = useCustomColors ? (btn.colorOff || '808080') : '808080';
 
     const hasDualActions = btn.shortPress?.enabled && btn.longPress?.enabled;
     const fontLine = btn.font !== 'roboto_12' ? `                     font: ${btn.font}\n` : '';
-    if (isCheckable && !hasTimerDefaultLabel && !hasDualActions) {
-      const colorValue = `0x${btn.color}`;
+    // timer_sync with customColors also uses the checkable widget (checked state driven by timer_sync_template)
+    const useCheckableWidget = (isCheckable && !hasDualActions) || (isTimerSync && useCustomColors && !hasDualActions);
+    if (useCheckableWidget) {
+      const colorOnValue = `0x${btn.color}`;
+      const colorOffValue = `0x${colorOff}`;
       widgets.push(`              - <<: !include
                    file: cyd-lib/templates/cyd_button_widget_checkable.yaml
                    vars:
                      id: ${btn.id}
                      col: ${position.col}
                      row: ${position.row}
-                     color: ${colorValue}
+                     color_on: ${colorOnValue}
+                     color_off: ${colorOffValue}
                      icon: ${yamlQuoted(btn.icon)}
 ${fontLine}                     label: ${yamlQuoted(btn.label)}`);
     } else {

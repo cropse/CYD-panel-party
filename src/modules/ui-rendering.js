@@ -240,13 +240,11 @@ export function createUIRendering({
     const hasCheckableIcons = btn.type === 'checkable' || btn.type === 'timer_sync' || btn.type === 'number_sync';
     document.getElementById('checkable-options').classList.toggle('hidden', !hasHomeAssistantEntity);
     document.getElementById('checkable-icons').classList.toggle('hidden', !hasCheckableIcons);
-    document.getElementById('timer-default-label-group')?.classList.toggle('hidden', btn.type !== 'timer_sync');
     document.getElementById('on-state-group')?.classList.toggle('hidden', btn.type !== 'checkable');
     document.getElementById('number-sync-threshold-group')?.classList.toggle('hidden', btn.type !== 'number_sync');
     document.getElementById('number-sync-condition-group')?.classList.toggle('hidden', btn.type !== 'number_sync');
     document.getElementById('ha-entity').value = btn.haEntity || '';
     document.getElementById('on-state').value = btn.onState ?? 'on';
-    document.getElementById('timer-default-label').value = btn.timerDefaultLabel || '';
     document.getElementById('number-threshold').value = btn.threshold ?? '';
     document.querySelectorAll('.condition-toggle button').forEach(b => {
       const isActive = b.dataset.condition === (btn.condition || 'above');
@@ -258,6 +256,19 @@ export function createUIRendering({
     updateIconPreview('icon', btn.icon);
     updateIconPreview('icon-on', btn.iconOn || btn.icon);
     updateIconPreview('icon-off', btn.iconOff || btn.icon);
+
+    const customColorsEnabled = Boolean(btn.customColors) && hasCheckableIcons;
+    const customColorsToggle = document.getElementById('custom-colors-toggle');
+    if (customColorsToggle) customColorsToggle.checked = customColorsEnabled;
+    document.getElementById('custom-colors-group')?.classList.toggle('hidden', !hasCheckableIcons);
+    document.getElementById('custom-off-color-group')?.classList.toggle('hidden', !customColorsEnabled);
+    const colorOffValue = btn.colorOff || '808080';
+    const colorOffNative = document.getElementById('color-off-native');
+    const colorOffHex = document.getElementById('color-off-hex');
+    if (colorOffNative) colorOffNative.value = `#${colorOffValue}`;
+    if (colorOffHex) colorOffHex.value = colorOffValue;
+    const colorLabel = document.getElementById('color-label');
+    if (colorLabel) colorLabel.textContent = customColorsEnabled ? 'Color On' : 'Color';
 
     // ponytail: relabel main icon for state-sync buttons — it's only shown when unavailable
     const iconLabel = document.getElementById('icon-label');

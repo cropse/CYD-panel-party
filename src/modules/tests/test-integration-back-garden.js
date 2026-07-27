@@ -88,16 +88,16 @@ describe('Back Garden preset - YAML parity', () => {
   });
 
   // ── Display ────────────────────────────────────────────────
-  it('display platform is ili9xxx', () => {
-    assert.ok(generated.includes('platform: ili9xxx'));
+  it('display platform is mipi_spi', () => {
+    assert.ok(generated.includes('platform: mipi_spi'));
   });
 
-  it('display model is TFT 2.4R', () => {
-    assert.ok(generated.includes('model: TFT 2.4R'));
+  it('display model is ILI9341', () => {
+    assert.ok(generated.includes('model: ILI9341'));
   });
 
-  it('display has color_palette 8BIT', () => {
-    assert.ok(generated.includes('color_palette: 8BIT'));
+  it('uses mipi_spi default color depth', () => {
+    assert.ok(!generated.includes('color_depth:'), 'ILI9341 uses mipi_spi default 16-bit color');
   });
 
   // ── Touchscreen ────────────────────────────────────────────
