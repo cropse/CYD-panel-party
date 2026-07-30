@@ -341,7 +341,7 @@ export const DEFAULT_BUTTON = {
   label: 'Button',
   font: 'roboto_12',
   color: 'FFFFFF',
-  icon: '\\U000F0594',
+  icon: '\\U000F0028',
   haEntity: null,
   onState: 'on',
   threshold: null,

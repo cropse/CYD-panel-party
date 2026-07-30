@@ -527,15 +527,20 @@ function setupButtonEditor() {
   document.getElementById('custom-colors-toggle')?.addEventListener('change', (e) => {
     store.button('customColors', e.target.checked);
     document.getElementById('custom-off-color-group')?.classList.toggle('hidden', !e.target.checked);
+    document.getElementById('state-colors-layout')?.classList.toggle('custom-colors-active', e.target.checked);
+    document.getElementById('primary-color-state')?.classList.toggle('hidden', !e.target.checked);
     const colorLabel = document.getElementById('color-label');
-    if (colorLabel) colorLabel.textContent = e.target.checked ? 'Color On' : 'Color';
+    if (colorLabel) colorLabel.textContent = e.target.checked ? 'On Color' : 'Color';
+    const colorThemeLabel = document.getElementById('color-theme-label');
+    if (colorThemeLabel) colorThemeLabel.textContent = e.target.checked ? 'On Color Theme' : 'Color Theme';
+    const colorSwatchesLabel = document.getElementById('color-swatches-label');
+    if (colorSwatchesLabel) colorSwatchesLabel.textContent = e.target.checked ? 'On Color Swatches' : 'Color Swatches';
   });
 
   document.getElementById('color-off-native')?.addEventListener('input', (e) => {
     const hex = e.target.value.replace('#', '').toUpperCase();
     store.button('colorOff', hex);
-    const hexInput = document.getElementById('color-off-hex');
-    if (hexInput) hexInput.value = hex;
+    ui.updateColorDisplay(hex, 'colorOff');
   });
 
   document.getElementById('color-off-hex')?.addEventListener('input', (e) => {
@@ -543,8 +548,7 @@ function setupButtonEditor() {
     e.target.value = hex;
     if (/^[0-9A-F]{6}$/.test(hex)) {
       store.button('colorOff', hex);
-      const native = document.getElementById('color-off-native');
-      if (native) native.value = `#${hex}`;
+      ui.updateColorDisplay(hex, 'colorOff');
     }
   });
 }
@@ -737,6 +741,8 @@ async function init() {
 
   ui.renderColorThemePresets();
   ui.renderColorSwatches();
+  ui.renderColorThemePresets('color-off-theme-presets', 'color-off-swatches', 'colorOff');
+  ui.renderColorSwatches('color-off-swatches', 'colorOff');
   ui.populateBoardSelector();
   ui.updateBoardSupportWarning(getBoardId());
   ui.renderGridPreview();

@@ -470,15 +470,6 @@ describe('generateLVGLWidgets', () => {
     assert.ok(out.includes('cyd_button_widget.yaml'));
   });
 
-  it('button labels use centered wrapping', () => {
-    const btns = [{
-      type: 'stateless', id: 'btn_1', col: 0, row: 0, icon: '\\U000F0335', label: 'Garden\nTimer', color: 'FF0000',
-      shortPress: { enabled: true }, longPress: { enabled: false }
-    }];
-    const out = render(generateLVGLWidgets(btns, sectionDeps));
-    assert.ok(out.includes('label: "Garden\\nTimer"'));
-  });
-
   it('number_sync button uses checkable widget template', () => {
     const btns = [{
       type: 'number_sync', id: 'btn_1', col: 0, row: 0, icon: '\\U000F0335', label: 'Sensor', color: 'FF0000',

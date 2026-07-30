@@ -88,7 +88,7 @@ The generator produces **single-file, self-contained YAML** (no `!include` depen
 ### 4. Button types
 - `stateless` — simple press action
 - `checkable` — syncs with HA entity state, shows different ON/OFF icons
-- `timer_sync` — syncs with HA timer entity, shows default label when idle
+- `timer_sync` — syncs with HA timer entity, shows the button label when idle
 
 ### 5. Secrets
 All generated configs must use `!secret` placeholders for:

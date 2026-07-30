@@ -17,11 +17,8 @@ button:
         y: ${icon_y | default("-8")}
     - label:
         id: lbl_text_${id}
-        width: 90%
-        long_mode: WRAP
         text_font: ${font | default("roboto_12")}
         text: "${label}"
         text_color: ${color | default("default_button_text_color")}
         align: center
-        text_align: CENTER
         y: ${label_y| default("20")}

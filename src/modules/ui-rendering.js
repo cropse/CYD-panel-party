@@ -14,7 +14,7 @@ export function createUIRendering({
   openModal, showToast
 }) {
   let gridCellCache = null;
-  let activeColorTheme = 'basic';
+  const activeColorThemes = { color: 'basic', colorOff: 'basic' };
 
   const LED_COLOR_PRESETS = [
     { name: 'Green', r: 0, g: 255, b: 0 },
@@ -253,7 +253,7 @@ export function createUIRendering({
       b.setAttribute('aria-checked', isActive ? 'true' : 'false');
     });
 
-    updateColorDisplay(btn.color);
+    updateColorDisplay(btn.color, 'color');
     updateIconPreview('icon', btn.icon);
     updateIconPreview('icon-on', btn.iconOn || btn.icon);
     updateIconPreview('icon-off', btn.iconOff || btn.icon);
@@ -263,13 +263,20 @@ export function createUIRendering({
     if (customColorsToggle) customColorsToggle.checked = customColorsEnabled;
     document.getElementById('custom-colors-group')?.classList.toggle('hidden', !hasCheckableIcons);
     document.getElementById('custom-off-color-group')?.classList.toggle('hidden', !customColorsEnabled);
+    document.getElementById('state-colors-layout')?.classList.toggle('custom-colors-active', customColorsEnabled);
+    document.getElementById('primary-color-state')?.classList.toggle('hidden', !customColorsEnabled);
     const colorOffValue = btn.colorOff || '808080';
     const colorOffNative = document.getElementById('color-off-native');
     const colorOffHex = document.getElementById('color-off-hex');
     if (colorOffNative) colorOffNative.value = `#${colorOffValue}`;
     if (colorOffHex) colorOffHex.value = colorOffValue;
+    updateColorDisplay(colorOffValue, 'colorOff');
     const colorLabel = document.getElementById('color-label');
-    if (colorLabel) colorLabel.textContent = customColorsEnabled ? 'Color On' : 'Color';
+    if (colorLabel) colorLabel.textContent = customColorsEnabled ? 'On Color' : 'Color';
+    const colorThemeLabel = document.getElementById('color-theme-label');
+    if (colorThemeLabel) colorThemeLabel.textContent = customColorsEnabled ? 'On Color Theme' : 'Color Theme';
+    const colorSwatchesLabel = document.getElementById('color-swatches-label');
+    if (colorSwatchesLabel) colorSwatchesLabel.textContent = customColorsEnabled ? 'On Color Swatches' : 'Color Swatches';
 
     // ponytail: relabel main icon for state-sync buttons — it's only shown when unavailable
     const iconLabel = document.getElementById('icon-label');
@@ -364,29 +371,30 @@ export function createUIRendering({
     }
   }
 
-  function renderColorThemePresets() {
-    const container = document.getElementById('color-theme-presets');
+  function renderColorThemePresets(containerId = 'color-theme-presets', swatchesId = 'color-swatches', target = 'color') {
+    const container = document.getElementById(containerId);
     if (!container) return;
 
     container.innerHTML = Object.keys(COLOR_THEMES).map(theme => `
-      <button type="button" class="btn btn-sm ${theme === activeColorTheme ? 'active' : ''}" data-theme="${theme}">
+      <button type="button" class="btn btn-sm ${theme === activeColorThemes[target] ? 'active' : ''}" data-theme="${theme}">
         ${theme.charAt(0).toUpperCase() + theme.slice(1)}
       </button>
     `).join('');
 
     container.querySelectorAll('button').forEach(btn => {
       btn.addEventListener('click', () => {
-        activeColorTheme = btn.dataset.theme;
-        renderColorSwatches();
+        activeColorThemes[target] = btn.dataset.theme;
+        renderColorThemePresets(containerId, swatchesId, target);
+        renderColorSwatches(swatchesId, target);
       });
     });
   }
 
-  function renderColorSwatches() {
-    const container = document.getElementById('color-swatches');
+  function renderColorSwatches(containerId = 'color-swatches', target = 'color') {
+    const container = document.getElementById(containerId);
     if (!container) return;
 
-    const colors = COLOR_THEMES[activeColorTheme] || COLOR_SWATCHES;
+    const colors = COLOR_THEMES[activeColorThemes[target]] || COLOR_SWATCHES;
     container.innerHTML = '';
 
     colors.forEach(color => {
@@ -397,21 +405,23 @@ export function createUIRendering({
       btn.setAttribute('aria-label', `Select color #${color}`);
       btn.dataset.color = color;
       btn.addEventListener('click', () => {
-        store.button('color', color);
-        updateColorDisplay(color);
+        store.button(target, color);
+        updateColorDisplay(color, target);
       });
       container.appendChild(btn);
     });
   }
 
-  function updateColorDisplay(color) {
-    const nativeInput = document.getElementById('color-native');
-    const hexInput = document.getElementById('color-hex');
+  function updateColorDisplay(color, target = 'color') {
+    const prefix = target === 'colorOff' ? 'color-off' : 'color';
+    const nativeInput = document.getElementById(`${prefix}-native`);
+    const hexInput = document.getElementById(`${prefix}-hex`);
 
     if (nativeInput) nativeInput.value = `#${color}`;
     if (hexInput) hexInput.value = color;
 
-    document.querySelectorAll('.color-swatch').forEach(el => {
+    const swatchesId = target === 'colorOff' ? 'color-off-swatches' : 'color-swatches';
+    document.querySelectorAll(`#${swatchesId} .color-swatch`).forEach(el => {
       el.classList.toggle('active', el.dataset.color === color);
     });
   }
@@ -646,7 +656,7 @@ export function createUIRendering({
     getLed,
     setLed,
     colorMatchIndex,
-    get activeColorTheme() { return activeColorTheme; },
-    set activeColorTheme(v) { activeColorTheme = v; }
+    get activeColorTheme() { return activeColorThemes.color; },
+    set activeColorTheme(v) { activeColorThemes.color = v; }
   };
 }

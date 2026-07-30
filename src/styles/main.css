@@ -157,14 +157,14 @@ main {
   grid-template-columns: 1fr;
   gap: 1.5rem;
   padding: 1.5rem;
-  max-width: 1400px;
+  max-width: 1800px;
   margin: 0 auto;
   width: 100%;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1360px) {
   main {
-    grid-template-columns: minmax(360px, 400px) 1fr 400px;
+    grid-template-columns: minmax(360px, 400px) minmax(520px, 1fr) minmax(360px, 440px);
     grid-template-rows: auto auto;
   }
 
@@ -182,7 +182,7 @@ main {
   }
 }
 
-@media (min-width: 768px) and (max-width: 1023px) {
+@media (min-width: 768px) and (max-width: 1359px) {
   main {
     grid-template-columns: 1fr 1fr;
   }
@@ -406,11 +406,10 @@ h2 {
 
 .grid-cell .label {
   font-size: 0.5rem;
-  line-height: 1.15;
   text-align: center;
   overflow: hidden;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   max-width: 100%;
 }
 
@@ -471,6 +470,32 @@ h2 {
   font-weight: 500;
   color: var(--text-secondary);
   margin-bottom: 0.375rem;
+}
+
+.editor-group {
+  min-width: 0;
+  margin: 0;
+  padding: 1rem 0 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.editor-group + .editor-group {
+  margin-top: 0.5rem;
+}
+
+.editor-group legend {
+  padding: 0 0.5rem 0 0;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.editor-group > :last-child,
+.editor-group > :last-child > :last-child {
+  margin-bottom: 0;
 }
 
 .label-row {
@@ -558,12 +583,6 @@ textarea.form-control {
   resize: vertical;
   font-family: 'Monaco', 'Menlo', monospace;
   font-size: 0.8125rem;
-}
-
-#btn-label {
-  min-height: 56px;
-  font-family: inherit;
-  font-size: 0.875rem;
 }
 
 .form-row {
@@ -1862,6 +1881,48 @@ Utilities
   text-align: center;
   font-family: monospace;
   text-transform: uppercase;
+}
+
+#state-colors-layout.custom-colors-active {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: start;
+}
+
+#state-colors-layout.custom-colors-active > div {
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.color-state-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.75rem;
+}
+
+.color-state-heading strong {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.color-state-heading span {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+#custom-off-color-group {
+  margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  #state-colors-layout.custom-colors-active {
+    grid-template-columns: 1fr;
+  }
 }
 
 .yaml-output {

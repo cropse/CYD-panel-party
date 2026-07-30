@@ -93,9 +93,9 @@ A button that syncs its state with a Home Assistant entity:
 
 #### Timer Sync Button
 A button that syncs with a Home Assistant `timer` entity:
-- Shows a default label when the timer is idle
+- Shows the button label when the timer is idle
 - Displays remaining time while the timer is running
-- Requires a timer entity ID and default label
+- Requires a timer entity ID
 
 #### Number Sync Button
 A button that syncs with a Home Assistant `number` or `sensor` entity:
