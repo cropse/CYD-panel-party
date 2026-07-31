@@ -679,10 +679,6 @@ function setupKeyboardShortcuts() {
       e.preventDefault();
       io.downloadYAML();
     }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
-      e.preventDefault();
-      io.downloadYAML();
-    }
   });
 }
 

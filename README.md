@@ -132,7 +132,6 @@ A button that syncs with a Home Assistant `number` or `sensor` entity:
 ### Keyboard Shortcuts
 
 - `Ctrl+S`: Download YAML file
-- `Ctrl+D`: Download YAML file
 - `Esc`: Close icon picker modal
 
 ## Deployment
@@ -241,39 +240,6 @@ CYD-panel-party/
 │   └── devices/            # Device definitions
 └── back-garden-cyd.yaml    # Golden reference YAML
 ```
-
-## Technical Details
-
-### Technologies Used
-
-- **Vite 5.x**: Development server and production build tool
-- **HTML5**: Semantic structure
-- **CSS3**: Mobile-first responsive design, CSS variables, flexbox/grid
-- **JavaScript (ES6+)**: ES modules, no frontend framework
-- **yaml (npm)**: YAML parsing for import/export roundtrip
-- **Material Design Icons**: CDN integration with localStorage caching
-
-### Data Storage
-
-- Configuration saved to `localStorage`
-- MDI icon data cached in `localStorage` (7-day TTL)
-- No server-side storage
-
-### Browser Support
-
-- Chrome/Edge (recommended)
-- Firefox
-- Safari (with some limitations)
-- Mobile browsers
-
-## Contributing
-
-Contributions welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
 
 ## License
 
