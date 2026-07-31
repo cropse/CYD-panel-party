@@ -241,6 +241,30 @@ CYD-panel-party/
 └── back-garden-cyd.yaml    # Golden reference YAML
 ```
 
+## Experimental Features
+
+> **⚠️ These features are still in progress and may change or break in future releases.**
+
+### Custom YAML Blocks
+
+Inject arbitrary ESPHome YAML (custom sensors, `i2c:`, `api:` overrides, etc.) using marker comments:
+
+```yaml
+# cyd-custom: begin
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+# cyd-custom: end
+```
+
+- Round-trip preserved on import/re-export.
+- No UI editor — hand-edit the YAML markers.
+- Content is **not validated**; invalid or duplicate keys will fail ESPHome compilation.
+
+### Config Round-Trip Metadata
+
+Generated YAML includes a base64 metadata block (`# cyd-config: begin` / `end`) that stores UI-only state (button names, thresholds, custom colors). It's ignored by ESPHome but needed for full round-trip import. Stripping it means import still works but may lose some UI state.
+
 ## License
 
 MIT License - feel free to use and modify.
